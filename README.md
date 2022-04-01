@@ -67,4 +67,6 @@ Rscript colocquial.R
 
 - The pipeline is currently set up to work with Pulit et al. BMI data. Directions on how to download the Pulit et al. data and example ``qtl_config.sh`` and lead SNP files are provided in the ``test_data/`` directory.
 
-- The version of this code used in Bellomo et al. (https://www.medrxiv.org/content/10.1101/2021.05.21.21257493v1) is in the ```Atherosclerosis_Multi_Trait_GWAS/``` directory.
+- The version of this code used in Bellomo et al. (https://doi.org/10.3389/fgene.2021.787545) is in the ```Atherosclerosis_Multi_Trait_GWAS/``` directory.
+
+- Previous versions of ColocQuiaL are located here: https://github.com/bychen9/eQTL_colocalizer 
