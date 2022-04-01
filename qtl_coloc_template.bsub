@@ -1,0 +1,14 @@
+#Run Coloc on all of the Tissue-gene pairs from the CSV
+#BSUB -J ColocQuiaL 
+#BSUB -o SNPNUMBER_TRAITNAME_COLOC.%J-%I.out
+#BSUB -e SNPNUMBER_TRAITNAME_COLOC.%J-%I.err
+#Send email notification when the job finishes
+#BSUB -N
+## otherwise, summary is written to the output file.
+
+module load R/3.6.3
+module load plink/1.90Beta4.5
+module load tabix
+module load liftOver
+
+Rscript ./colocquial.R

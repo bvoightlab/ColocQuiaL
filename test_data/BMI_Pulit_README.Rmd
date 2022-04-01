@@ -1,0 +1,74 @@
+---
+title: "BMI_Pulit_README"
+author: "William Bone"
+date: "3/24/2022"
+output: html_document
+---
+## date: September 01, 2020
+This is the documentation for how the Pulit et al. BMI data was modified  to be compatible with ColocQuiaL
+I downloaded this file from: https://zenodo.org/record/1251813#.X06L-hNKhTZ
+
+#### adding rsIS to the Pulit et al. BMI data
+```{r eval=FALSE}
+
+gunzip bmi.giant-ukbb.meta-analysis.combined.23May2018.txt.gz
+
+
+module remove python
+module load python/2.7.14
+
+python
+import pandas as pd
+import numpy as np
+
+BMI_Pulit_data = pd.read_table('bmi.giant-ukbb.meta-analysis.combined.23May2018.txt', sep=" ",low_memory=False)
+
+BMI_Pulit_data.shape
+(27381302, 11)
+
+#looks right
+
+BMI_Pulit_data.head(n=5)
+   CHR      POS              SNP Tested_Allele Other_Allele  Freq_Tested_Allele    BETA      SE        P         N      INFO
+0  1.0  54353.0  rs140052487:C:A             A            C              0.0006 -0.1194  0.0638  0.06131  484680.0  0.339663
+1  1.0  54564.0  rs558796213:G:T             T            G              0.0005  0.0626  0.0527  0.23420  484680.0  0.705411
+2  1.0  54591.0  rs561234294:A:G             A            G              0.9999  0.0472  0.1430  0.74150  484680.0  0.317431
+3  1.0  54676.0    rs2462492:C:T             T            C              0.3941  0.0022  0.0033  0.50780  484680.0  0.340158
+4  1.0  54763.0  rs548455890:T:G             T            G              0.9999 -0.0310  0.1073  0.77260  484680.0  0.667992
+
+
+#need to remove SNPs with NaN for CHR or POS and reformat these fields to be ints instead of floats
+BMI_Pulit_data = BMI_Pulit_data.dropna(subset = ['CHR', 'POS'])
+
+BMI_Pulit_data.shape
+(27380252, 11)
+
+BMI_Pulit_data['CHR'] =BMI_Pulit_data.CHR.astype(int)
+BMI_Pulit_data['POS'] = BMI_Pulit_data.POS.astype(int)
+
+BMI_Pulit_data.head(n=5)
+   CHR    POS              SNP Tested_Allele Other_Allele  Freq_Tested_Allele    BETA      SE        P         N      INFO
+0    1  54353  rs140052487:C:A             A            C              0.0006 -0.1194  0.0638  0.06131  484680.0  0.339663
+1    1  54564  rs558796213:G:T             T            G              0.0005  0.0626  0.0527  0.23420  484680.0  0.705411
+2    1  54591  rs561234294:A:G             A            G              0.9999  0.0472  0.1430  0.74150  484680.0  0.317431
+3    1  54676    rs2462492:C:T             T            C              0.3941  0.0022  0.0033  0.50780  484680.0  0.340158
+4    1  54763  rs548455890:T:G             T            G              0.9999 -0.0310  0.1073  0.77260  484680.0  0.667992
+
+#split SNP on ":"
+BMI_Pulit_data[['SNP','Ref_Allele','Alt_Allele']] = BMI_Pulit_data['SNP'].str.split(':',expand=True)
+
+BMI_Pulit_data.head(n=5)
+   CHR    POS          SNP Tested_Allele Other_Allele  Freq_Tested_Allele    BETA      SE        P         N      INFO Ref_Allele Alt_Allele
+0    1  54353  rs140052487             A            C              0.0006 -0.1194  0.0638  0.06131  484680.0  0.339663          C          A
+1    1  54564  rs558796213             T            G              0.0005  0.0626  0.0527  0.23420  484680.0  0.705411          G          T
+2    1  54591  rs561234294             A            G              0.9999  0.0472  0.1430  0.74150  484680.0  0.317431          A          G
+3    1  54676    rs2462492             T            C              0.3941  0.0022  0.0033  0.50780  484680.0  0.340158          C          T
+4    1  54763  rs548455890             T            G              0.9999 -0.0310  0.1073  0.77260  484680.0  0.667992          T          G
+
+BMI_Pulit_data.shape
+(27380252, 13)
+
+
+BMI_Pulit_data.to_csv("BMI_Pulit_data_rsID_ready.txt",sep="\t", index=False)
+
+```

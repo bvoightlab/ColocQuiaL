@@ -1,0 +1,10 @@
+#Run cod to collect the QTL colocalization results after they have all been generated.
+#BSUB -J summarize_qtl_results
+#BSUB -o TRAITNAME_COLOC_Results_Summary.%J-%I.out
+#BSUB -e TRAITNAME_COLOC_Results_Summary.%J-%I.err
+#BSUB -N
+#BSUB -w done(ColocQuiaL)
+
+module load R/3.6.3
+
+COLOCQUIAL_DIR/summarize_qtl_results.sh

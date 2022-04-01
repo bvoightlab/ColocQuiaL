@@ -1,0 +1,55 @@
+﻿Tissue,NumberRNASeqandGTSamples,NumberRNASeqSamples,Number_of_eGenes,allPairsTabixFilename,sigPairsTabixFilename
+Muscle - Skeletal,706,803,13532,Muscle_Skeletal.v8.tab.gz,Muscle_Skeletal.v8.signif_variant_gene_pairs.tab.gz
+Whole Blood,670,755,12360,Whole_Blood.v8.tab.gz,Whole_Blood.v8.signif_variant_gene_pairs.tab.gz
+Skin - Sun Exposed (Lower leg),605,701,16967,Skin_Sun_Exposed_Lower_leg.v8.tab.gz,Skin_Sun_Exposed_Lower_leg.v8.signif_variant_gene_pairs.tab.gz
+Artery - Tibial,584,663,15008,Artery_Tibial.v8.tab.gz,Artery_Tibial.v8.signif_variant_gene_pairs.tab.gz
+Adipose - Subcutaneous,581,663,15607,Adipose_Subcutaneous.v8.tab.gz,Adipose_Subcutaneous.v8.signif_variant_gene_pairs.tab.gz
+Thyroid,574,653,17684,Thyroid.v8.tab.gz,Thyroid.v8.signif_variant_gene_pairs.tab.gz
+Nerve - Tibial,532,619,17285,Nerve_Tibial.v8.tab.gz,Nerve_Tibial.v8.signif_variant_gene_pairs.tab.gz
+Skin - Not Sun Exposed (Suprapubic),517,604,15483,Skin_Not_Sun_Exposed_Suprapubic.v8.tab.gz,Skin_Not_Sun_Exposed_Suprapubic.v8.signif_variant_gene_pairs.tab.gz
+Lung,515,578,14113,Lung.v8.tab.gz,Lung.v8.signif_variant_gene_pairs.tab.gz
+Esophagus - Mucosa,497,555,14675,Esophagus_Mucosa.v8.tab.gz,Esophagus_Mucosa.v8.signif_variant_gene_pairs.tab.gz
+Cells - Cultured fibroblasts,483,504,15219,Cells_Cultured_fibroblasts.v8.tab.gz,Cells_Cultured_fibroblasts.v8.signif_variant_gene_pairs.tab.gz
+Adipose - Visceral (Omentum),469,541,12482,Adipose_Visceral_Omentum.v8.tab.gz,Adipose_Visceral_Omentum.v8.signif_variant_gene_pairs.tab.gz
+Esophagus - Muscularis,465,515,14110,Esophagus_Muscularis.v8.tab.gz,Esophagus_Muscularis.v8.signif_variant_gene_pairs.tab.gz
+Breast - Mammary Tissue,396,459,10872,Breast_Mammary_Tissue.v8.tab.gz,Breast_Mammary_Tissue.v8.signif_variant_gene_pairs.tab.gz
+Artery - Aorta,387,432,12493,Artery_Aorta.v8.tab.gz,Artery_Aorta.v8.signif_variant_gene_pairs.tab.gz
+Heart - Left Ventricle,386,432,9642,NA,NA
+Heart - Atrial Appendage,372,429,10991,Heart_Atrial_Appendage.v8.tab.gz,Heart_Atrial_Appendage.v8.signif_variant_gene_pairs.tab.gz
+Colon - Transverse,368,406,11686,Colon_Transverse.v8.tab.gz,Colon_Transverse.v8.signif_variant_gene_pairs.tab.gz
+Esophagus - Gastroesophageal Junction,330,375,10534,Esophagus_Gastroesophageal_Junction.v8.tab.gz,Esophagus_Gastroesophageal_Junction.v8.signif_variant_gene_pairs.tab.gz
+Stomach,324,359,8771,Stomach.v8.tab.gz,Stomach.v8.signif_variant_gene_pairs.tab.gz
+Testis,322,361,18795,Testis.v8.tab.gz,Testis.v8.signif_variant_gene_pairs.tab.gz
+Colon - Sigmoid,318,373,10550,Colon_Sigmoid.v8.tab.gz,Colon_Sigmoid.v8.signif_variant_gene_pairs.tab.gz
+Pancreas,305,328,9660,Pancreas.v8.tab.gz,Pancreas.v8.signif_variant_gene_pairs.tab.gz
+Pituitary,237,283,9146,Pituitary.v8.tab.gz,Pituitary.v8.signif_variant_gene_pairs.tab.gz
+Adrenal Gland,233,258,8123,Adrenal_Gland.v8.tab.gz,Adrenal_Gland.v8.signif_variant_gene_pairs.tab.gz
+Spleen,227,241,10783,Spleen.v8.tab.gz,Spleen.v8.signif_variant_gene_pairs.tab.gz
+Prostate,221,245,7356,Prostate.v8.tab.gz,Prostate.v8.signif_variant_gene_pairs.tab.gz
+Artery - Coronary,213,240,6296,Artery_Coronary.v8.tab.gz,Artery_Coronary.v8.signif_variant_gene_pairs.tab.gz
+Brain - Cerebellum,209,241,11240,Brain_Cerebellum.v8.tab.gz,Brain_Cerebellum.v8.signif_variant_gene_pairs.tab.gz
+Liver,208,226,5734,Liver.v8.tab.gz,Liver.v8.signif_variant_gene_pairs.tab.gz
+Brain - Cortex,205,255,9082,Brain_Cortex.v8.tab.gz,Brain_Cortex.v8.signif_variant_gene_pairs.tab.gz
+Brain - Nucleus accumbens (basal ganglia),202,246,8198,Brain_Nucleus_accumbens_basal_ganglia.v8.tab.gz,Brain_Nucleus_accumbens_basal_ganglia.v8.signif_variant_gene_pairs.tab.gz
+Brain - Caudate (basal ganglia),194,246,8362,Brain_Caudate_basal_ganglia.v8.tab.gz,Brain_Caudate_basal_ganglia.v8.signif_variant_gene_pairs.tab.gz
+Brain - Cerebellar Hemisphere,175,215,10027,Brain_Cerebellar_Hemisphere.v8.tab.gz,Brain_Cerebellar_Hemisphere.v8.signif_variant_gene_pairs.tab.gz
+Brain - Frontal Cortex (BA9),175,209,7335,Brain_Frontal_Cortex_BA9.v8.tab.gz,Brain_Frontal_Cortex_BA9.v8.signif_variant_gene_pairs.tab.gz
+Small Intestine - Terminal Ileum,174,187,6681,Small_Intestine_Terminal_Ileum.v8.tab.gz,Small_Intestine_Terminal_Ileum.v8.signif_variant_gene_pairs.tab.gz
+Brain - Hypothalamus,170,202,5499,Brain_Hypothalamus.v8.tab.gz,Brain_Hypothalamus.v8.signif_variant_gene_pairs.tab.gz
+Brain - Putamen (basal ganglia),170,205,6902,Brain_Putamen_basal_ganglia.v8.tab.gz,Brain_Putamen_basal_ganglia.v8.signif_variant_gene_pairs.tab.gz
+Ovary,167,180,5542,Ovary.v8.tab.gz,Ovary.v8.signif_variant_gene_pairs.tab.gz
+Brain - Hippocampus,165,197,5517,Brain_Hippocampus.v8.tab.gz,Brain_Hippocampus.v8.signif_variant_gene_pairs.tab.gz
+Brain - Anterior cingulate cortex (BA24),147,176,5640,Brain_Anterior_cingulate_cortex_BA24.v8.tab.gz,Brain_Anterior_cingulate_cortex_BA24.v8.signif_variant_gene_pairs.tab.gz
+Cells - EBV-transformed lymphocytes,147,174,4934,Cells_EBV-transformed_lymphocytes.v8.tab.gz,Cells_EBV-transformed_lymphocytes.v8.signif_variant_gene_pairs.tab.gz
+Minor Salivary Gland,144,162,4836,Minor_Salivary_Gland.v8.tab.gz,Minor_Salivary_Gland.v8.signif_variant_gene_pairs.tab.gz
+Vagina,141,156,3730,Vagina.v8.tab.gz,Vagina.v8.signif_variant_gene_pairs.tab.gz
+Brain - Amygdala,129,152,3726,Brain_Amygdala.v8.tab.gz,Brain_Amygdala.v8.signif_variant_gene_pairs.tab.gz
+Uterus,129,142,3577,Uterus.v8.tab.gz,Uterus.v8.signif_variant_gene_pairs.tab.gz
+Brain - Spinal cord (cervical c-1),126,159,4483,Brain_Spinal_cord_cervical_c-1.v8.tab.gz,Brain_Spinal_cord_cervical_c-1.v8.signif_variant_gene_pairs.tab.gz
+Brain - Substantia nigra,114,139,3301,Brain_Substantia_nigra.v8.tab.gz,Brain_Substantia_nigra.v8.signif_variant_gene_pairs.tab.gz
+Kidney - Cortex,73,85,1260,Kidney_Cortex.v8.tab.gz,Kidney_Cortex.v8.signif_variant_gene_pairs.tab.gz
+Bladder,21,21,null,NA,NA
+Cervix - Endocervix,10,10,null,NA,NA
+Cervix - Ectocervix,9,9,null,NA,NA
+Fallopian Tube,8,9,null,NA,NA
+Kidney - Medulla,4,4,null,NA,NA
