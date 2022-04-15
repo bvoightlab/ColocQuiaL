@@ -9,6 +9,7 @@ pwd
 
 #load config file
 source qtl_config.sh
+source $setup_config_sh
 
 #write header to the summary results file
 printf "SNP\tGene\tGeneID-Tissue\tTrait\tPPID\tPP\n" > $trait"_"$qtlType"_coloc_results_all_summary_"$today"_"$now".txt" 
@@ -50,7 +51,7 @@ then
 fi
 
 #run Rscript to generate a file with PP3, PP4, and PP4/(PP3 + PP4) for each lead SNP-Gene-Tissue result.
-Rscript ./summarize_qtl_coloc_PP3_PP4_results.R $trait"_"$qtlType"_coloc_results_all_summary_"$today"_"$now".txt"
+Rscript $colocquial_dir"/summarize_qtl_coloc_PP3_PP4_results.R" $trait"_"$qtlType"_coloc_results_all_summary_"$today"_"$now".txt"
 
 echo "Your summary QTL file is ready!" 
 

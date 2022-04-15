@@ -2,7 +2,7 @@
 #this config file is required for running the colocalizer pipeline on multiple loci at a time
 
 #path to the directory where the ColocQuiaL code is saved locally
-colocquial_dir="/project/voight_GWAS/bychen9/eQTL_colocalizer"
+colocquial_dir="/project/voight_GWAS/bychen9/ColocQuiaL"
 
 #provide the path to plink refernce files to be used for plink commands
 plink_bfile="/project/voight_selscan/ksiewert/CardioMetaAnalysis/LDL_CHD_Bivar/LDClump/PlinkFilesOnlyRs/mergedBed"

@@ -26,13 +26,15 @@ This repository contains the code needed to generate dependency files and run Co
 
 - Create a tissue summary CSV file (e.g., ``GTEx_v8_Tissue_Summary_with_filenames.csv`` and ``GTEx_v8_sQTL_Tissue_Summary_with_filenames.csv``) containing the tissue names, sample sizes, and file names of the tabix files corresponding to your QTL dataset.
 
-- Create a configuration file for each downloaded QTL dataset based on ``setup_config.R`` and ``setup_config.sh``.
+- Create a configuration file for each downloaded QTL dataset based on ``setup_config.R``.
 
 - LD and recombination rate reference files: need to have merge plink files (.bed, .bim, .fam) files, a filie of which samples to use, and recombination rates to generate the regional association.
   - Recombination rate files can be downloaded from here: http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/technical/working/20130507_omni_recombination_rates
   
 ### Modify path to files
-- In ``colocquial_wrapper.sh``, update ``colocquial_dir`` to the path to the directory containing ``colocquial.R``, ``qtl_coloc_template.bsub``, and ``QTL_config_template.R``. 
+- In ``setup_config.sh``, update ``colocquial_dir`` to the path to the directory containing ``colocquial.R``, ``qtl_coloc_template.bsub``, and ``QTL_config_template.R``. 
+
+- Make sure all paths in ``setup_config.sh`` and ``setup_config.R`` files are correct. 
 
 ## Running the pipeline
 Create an analysis directory, and add ``colocquial_wrapper.sh`` and a ``qtl_config.sh`` file modified to correspond to the GWAS signals on which you would like to perform eQTL or sQTL colocalization analysis.
