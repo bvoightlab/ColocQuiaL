@@ -14,23 +14,36 @@ This repository contains the code needed to generate dependency files and run Co
   python dbsnp_hash_table_maker.py
   ```
 
-- If necessary, create significant pair files from all pairs files. Note that this step is not required for GTEx as significant pair files are provided. An example of how to create significant pair files for a dataset downloaded from eQTL Catalogue is provided in ``make_significant_pairs_files.R``.
-  ```
-  Rscript make_significant_pairs_files.R GENCORD_ge_fibroblast.all.tsv.gz
-  ```
-  
-- Generate tabix index files for the significant pair files and all pairs files. Examples of how to generate the files for GTEx datasets and eQTL Catalogue datasets are provided in ``create_tabix_gtex_eqtl_allpairs.sh``, ``create_tabix_gtex_eqtl_sigpairs.sh``, ``create_tabix_gtex_sqtl_allpairs.sh``, ``create_tabix_gtex_sqtl_sigpairs.sh``, and ``create_tabix_eqtl_catalogue.sh``.
+- LD and recombination rate reference files: need to have merge plink files (.bed, .bim, .fam) files, a filie of which samples to use, and recombination rates to generate the regional association.
+  - Recombination rate files can be downloaded from here: http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/technical/working/20130507_omni_recombination_rates
+
+#### For GTEx datasets
+- Generate tabix index files for the significant pair files and all pairs files. Examples of how to generate the files for GTEx datasets are provided in ``create_tabix_gtex_eqtl_allpairs.sh``, ``create_tabix_gtex_eqtl_sigpairs.sh``, ``create_tabix_gtex_sqtl_allpairs.sh``, and ``create_tabix_gtex_sqtl_sigpairs.sh``.
   ```
   bash create_tabix_gtex_eqtl_sigpairs.sh Adipose_Subcutaneous.v8.signif_variant_gene_pairs.txt
   ```
 
 - Create a tissue summary CSV file (e.g., ``GTEx_v8_Tissue_Summary_with_filenames.csv`` and ``GTEx_v8_sQTL_Tissue_Summary_with_filenames.csv``) containing the tissue names, sample sizes, and file names of the tabix files corresponding to your QTL dataset.
 
+#### For eQTL Catalogue datasets
+- Create significant pair files from the downloaded all pairs files. An example of how to create significant pair files is provided in ``make_significant_pairs_files.R``
+  ```
+  Rscript make_significant_pairs_files.R GENCORD_ge_fibroblast.all.tsv.gz
+  ```
+
+- Generate tabix index files for the significant pair files and all pairs files. An example of how to generate the files for eQTL Catalogue datasets is provided in ``create_tabix_eqtl_catalogue.sh``. Note that the example ``make_significant_pairs_files.R`` from the previous step does this step automatically.
+
+- For each QTL dataset, create a tissue summary CSV file containing the tissue names, sample sizes, and file names of the tabix files corresponding to the dataset (Similar to ``GTEx_v8_Tissue_Summary_with_filenames.csv`` and ``GTEx_v8_sQTL_Tissue_Summary_with_filenames.csv``).
+
 - Create a configuration file for each downloaded QTL dataset based on ``setup_config.R``.
 
-- LD and recombination rate reference files: need to have merge plink files (.bed, .bim, .fam) files, a filie of which samples to use, and recombination rates to generate the regional association.
-  - Recombination rate files can be downloaded from here: http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/technical/working/20130507_omni_recombination_rates
-  
+#### For other datasets
+Assuming the file types are similar to the GTEx or eQTL Catalogue datasets, the overall setup structure should be similar: 
+1. If necessary, create significant pair files from all pairs files. Note that this step was not required for GTEx as significant pair files are provided. 
+2. Generate tabix index files for the significant pair files and all pairs files. 
+3. For each QTL dataset, create a tissue summary CSV file (e.g., ``GTEx_v8_Tissue_Summary_with_filenames.csv`` and ``GTEx_v8_sQTL_Tissue_Summary_with_filenames.csv``) containing the tissue names, sample sizes, and file names of the tabix files corresponding to the dataset.
+4. Create a configuration file for each downloaded QTL dataset based on ``setup_config.R``.
+
 ### Modify path to files
 - In ``setup_config.sh``, update ``colocquial_dir`` to the path to the directory containing ``colocquial.R``, ``qtl_coloc_template.bsub``, and ``QTL_config_template.R``. 
 
