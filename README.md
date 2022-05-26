@@ -6,8 +6,8 @@ This repository contains the code needed to generate dependency files and run Co
 ###  Download files
 - Download GRCh38 dbSNP BED files from here: https://ftp.ncbi.nih.gov/snp/organisms/human_9606_b151_GRCh38p7/BED/
 
-- Download tissue specific eQTL or sQTL dataset (e.g., all SNPs tissue specific GTEx v8 files from the GTEx website: https://www.gtexportal.org/home/datasets)
-  
+- Download tissue specific eQTL or sQTL dataset. For example, all SNPs tissue specific GTEx v8 files can be downloaded from the GTEx website at https://www.gtexportal.org/home/datasets and additional QTL datasets from eQTL Catalogue can be downloaded at http://ftp.ebi.ac.uk/pub/databases/spot/eQTL/sumstats/.
+ 
 ### Generate dependency files
 - Run ``dbsnp_hash_table_maker.py`` to create hash tables from the GRCh38 dbSNP BED files in the directory containing the files.
   ```
@@ -31,7 +31,7 @@ This repository contains the code needed to generate dependency files and run Co
   Rscript make_significant_pairs_files.R GENCORD_ge_fibroblast.all.tsv.gz
   ```
 
-- Generate tabix index files for the significant pair files and all pairs files. An example of how to generate the files for eQTL Catalogue datasets is provided in ``create_tabix_eqtl_catalogue.sh``. Note that the example ``make_significant_pairs_files.R`` from the previous step does this step automatically.
+- Generate tabix index files for the significant pair files. The tabix index files for the all pair files are provided by eQTL Catalogue. An example of how to generate the files for eQTL Catalogue datasets is provided in ``create_tabix_eqtl_catalogue.sh``. Note that the example ``make_significant_pairs_files.R`` from the previous step does this step automatically.
 
 - For each QTL dataset, create a tissue summary CSV file containing the tissue names, sample sizes, and file names of the tabix files corresponding to the dataset (Similar to ``GTEx_v8_Tissue_Summary_with_filenames.csv`` and ``GTEx_v8_sQTL_Tissue_Summary_with_filenames.csv``).
 
