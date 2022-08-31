@@ -84,4 +84,6 @@ Rscript colocquial.R
 
 - The version of this code used in Bellomo et al. (https://doi.org/10.3389/fgene.2021.787545) is in the ```Atherosclerosis_Multi_Trait_GWAS/``` directory.
 
-- Previous versions of ColocQuiaL are located here: https://github.com/bychen9/eQTL_colocalizer 
+- Previous versions of ColocQuiaL are located here: https://github.com/bychen9/eQTL_colocalizer
+
+- If you use the ColocQuiaL pipeline please cite: Brian Y Chen, William P Bone, Kim Lorenz, Michael Levin, Marylyn D Ritchie, Benjamin F Voight, ColocQuiaL: A QTL-GWAS colocalization pipeline, Bioinformatics, 2022;, btac512, https://doi.org/10.1093/bioinformatics/btac512
