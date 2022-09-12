@@ -20,8 +20,8 @@ library(Homo.sapiens)
 library(ggbio)
 library(egg)
 
-qtl_vars <- c(
-  "eqtl" = c(
+qtl_vars <- list(
+  "eqtl" = list(
     "sig_qtl_tabix_dir" = eQTL_sig_qtl_tabix_dir,
     "sig_geneID_col" = eQTL_sig_geneID_col,
     "all_qtl_tabix_dir" = eQTL_all_qtl_tabix_dir,
@@ -31,7 +31,7 @@ qtl_vars <- c(
     "all_chromEnd" = eQTL_all_chromEnd,
     "all_pvalue" = eQTL_all_pvalue,
     "QTL_tissue_table" = eQTL_tissue_table),
-  "sqtl" = c(
+  "sqtl" = list(
     "sig_qtl_tabix_dir" = sQTL_sig_qtl_tabix_dir,
     "sig_geneID_col" = sQTL_sig_geneID_col,
     "all_qtl_tabix_dir" = sQTL_all_qtl_tabix_dir,
@@ -40,8 +40,8 @@ qtl_vars <- c(
     "all_chrom" = sQTL_all_chrom,
     "all_chromEnd" = sQTL_all_chromEnd,
     "all_pvalue" = sQTL_all_pvalue,
-    "QTL_tissue_table" = sQTL_tissue_table,
-  ),
+    "QTL_tissue_table" = sQTL_tissue_table
+  )
 )
 
 
@@ -180,7 +180,7 @@ gg_regional_association_plink <- function(df, lead_snps = NULL, rsid = rsid, chr
 }
 
 #generate the gene tracks for the RA plots
-ggbio_genetrack <- function(chrom_str, BPStart, BPStop){
+ggbio_genetrack <- function(chrom_str, BPStart, BPStop) {
 
     gene_region <- GRanges(
 seqnames = Rle(c(chrom_str), c(1)),
@@ -196,7 +196,7 @@ ranges = IRanges(BPStart:BPStop))
 }
 
 #Print all of the config file settings to screen or the stnd out file
-print_config_settings <-function(){
+print_config_settings <-function() {
   print("trait")
   print(trait)
 
@@ -381,7 +381,7 @@ eqtl_colocalization <- function() {
 }
 
 #NK
-sqtl_colocalization <- function(){
+sqtl_colocalization <- function() {
 
   #NK
   colocInputMasterFile = prep_coloc_input_file(qtl_type)       
@@ -486,15 +486,15 @@ print_config_settings()
 
 # Set up QTL variables for either eQTL or sQTL
 if (qtlType == "eqtl" | qtlType == "sqtl") {
-    sig_qtl_tabix_dir = qtl_vars[qtlType]["sig_qtl_tabix_dir"]
-    sig_geneID_col = qtl_vars[qtlType]["sig_geneID_col"]
-    all_qtl_tabix_dir = qtl_vars[qtlType]["all_qtl_tabix_dir"]
-    all_header = qtl_vars[qtlType]["all_header"]
-    all_geneID = qtl_vars[qtlType]["all_geneID"]
-    all_chrom = qtl_vars[qtlType]["all_chrom"]
-    all_chromEnd = qtl_vars[qtlType]["all_chromEnd"]
-    all_pvalue = qtl_vars[qtlType]["all_pvalue"]
-    QTL_tissue_table = qtl_vars[qtlType]["QTL_tissue_table"]
+    sig_qtl_tabix_dir = qtl_vars[[qtlType]][["sig_qtl_tabix_dir"]]
+    sig_geneID_col = qtl_vars[[qtlType]][["sig_geneID_col"]]
+    all_qtl_tabix_dir = qtl_vars[[qtlType]][["all_qtl_tabix_dir"]]
+    all_header = qtl_vars[[qtlType]][["all_header"]]
+    all_geneID = qtl_vars[[qtlType]][["all_geneID"]]
+    all_chrom = qtl_vars[[qtlType]][["all_chrom"]]
+    all_chromEnd = qtl_vars[[qtlType]][["all_chromEnd"]]
+    all_pvalue = qtl_vars[[qtlType]][["all_pvalue"]]
+    QTL_tissue_table = qtl_vars[[qtlType]][["QTL_tissue_table"]]
 } else {
     print("ERROR: Please specify qtlType: \"eqtl\" or \"sqtl\"")
     quit()
