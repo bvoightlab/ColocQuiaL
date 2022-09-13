@@ -4,7 +4,7 @@
 # used in make_significant_pairs_files.R
 # $1 is path to tissue file
 
-module load tabix
+module load htslib #or module load tabix
 module load vcftools
 
 # Remove .tsv.gz

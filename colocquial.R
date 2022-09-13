@@ -155,12 +155,13 @@ gg_regional_association_plink <- function(df, lead_snps = NULL, rsid = rsid, chr
   return(plot)
 }
 
+
 #generate the gene tracks for the RA plots
-ggbio_genetrack <- function(chrom_str, BPStart, BPStop){
+ggbio_genetrack <- function(chrom_str, BPStart, BPStop) {
 
     gene_region <- GRanges(
-seqnames = Rle(c(chrom_str), c(1)),
-ranges = IRanges(BPStart:BPStop))
+      seqnames = Rle(c(chrom_str), c(1)),
+      ranges = IRanges(BPStart:BPStop))
 
     plot <- autoplot(Homo.sapiens, which = gene_region) + xlim(BPStart,BPStop) + scale_x_continuous(expand=c(0,0))
 
@@ -168,63 +169,393 @@ ranges = IRanges(BPStart:BPStop))
     plot <- plot@ggplot
 
     return(plot)
-
 }
 
 
+#Print all of the config file settings to screen or the stnd out file
+print_config_settings <- function() {
+  print("trait")
+  print(trait)
+
+  print("trait_file_header_info")
+  print(traitFilePath)
+  print(trait_A1col)
+  print(trait_A2col)
+  print(trait_SNPcol)
+  print(trait_CHRcol)
+  print(trait_BPcol)
+  print(trait_Pcol)
+  print(trait_Ncol)
+  print(trait_MAFcol)
+
+  print("traitType:")
+  print(traitType)
+  print(traitProp)
+
+  print("Locus Info:")
+  print(chrom)
+  print(colocStart)
+  print(colocStop)
+  print(lead_SNP)
+
+  print("QTL type:")
+  print(qtlType)
+}
+
+
+prep_coloc_input_file <- function() {
+    sprintf("merging the trait and %s on unique ID",qtlType) 
+    colocInputFile = merge(eGeneTissue_region, trait_region, by.x="SNP", by.y=trait_SNPcol_str) # nolint
+    colocInputFile = colocInputFile[complete.cases(colocInputFile), ]
+
+    if (0 %in% colocInputFile[[trait_Pcol]]){
+    print("WARNING: THERE ARE SNPS WITH P-VALUES OF 0 AT THIS LOCUS. These SNPs have been removed for the Colocalization anlysis and may lead to unusual regional association plots")
+    
+    #remove SNPs who's trait P-value is 0 # nolint
+    colocInputFile = colocInputFile[colocInputFile[[trait_Pcol]] != 0,]
+  }
+
+  return(colocInputFile)
+}
+
+
+get_coloc_results <- function(colocInputFile, qtl_all_pvalue) {
+if (traitType == "cc") {
+    return(coloc.abf(dataset1=list(pvalues=colocInputFile[[trait_Pcol]], N=colocInputFile[[trait_Ncol]], type=traitType, s=traitProp), dataset2=list(pvalues=colocInputFile[[qtl_all_pvalue]], N=qtl_N, type="quant"),MAF=colocInputFile[[trait_MAFcol_str]]))
+  } else {
+    return(coloc.abf(dataset1=list(pvalues=colocInputFile[[trait_Pcol]], N=colocInputFile[[trait_Ncol]], type=traitType), dataset2=list(pvalues=colocInputFile[[qtl_all_pvalue]], N=qtl_N, type="quant"),MAF=colocInputFile[[trait_MAFcol_str]]))
+  }
+}
+
+
+write_coloc_input_file <- function(colocInputFile) {
+#write colocInputFile to file for making locus zoom plots
+  colocInputFile_outputStr = paste(out_prefix,"coloc_input_data.txt",sep="_")
+  write.table(colocInputFile, file= colocInputFile_outputStr, sep="\t", row.names=FALSE, quote=FALSE)
+}
+
+
+write_table_to_file <- function(coloc_results) {
+  #prepare useful outputs
+  coloc_results_summary = coloc_results$summary
+  coloc_results_full = coloc_results$results
+  
+  #calculate pp4 / pp3 + pp4
+  PP3andPP4 = coloc_results_summary[5] + coloc_results_summary[6]
+  pp4_conditional = coloc_results_summary[6] / PP3andPP4
+  
+  #prep coloc output strings
+  coloc_results_summary_outputStr = paste(out_prefix,"coloc_results_summary.txt",sep="_")
+  coloc_results_full_outputStr = paste(out_prefix,"coloc_results_full.txt",sep="_")
+  coloc_results_pp4_cond_outputStr = paste(out_prefix,"coloc_results_pp4_cond.txt",sep="_")
+  
+  #write to file
+  write.table(coloc_results_summary, file=coloc_results_summary_outputStr, sep="\t", row.names=TRUE, quote=FALSE)
+  write.table(coloc_results_full, file=coloc_results_full_outputStr, sep="\t", row.names=FALSE, quote=FALSE)
+  write.table(pp4_conditional, file=coloc_results_pp4_cond_outputStr, sep="\t", row.names=FALSE, quote=FALSE)
+}
+
+
+find_lead_snp_in_ld <- function(colocInputFile, qtl_all_chrom, qtl_all_pvalue) {
+    print("lead SNP is not in the provided LD reference, so we need to find a different SNP for making the RA plots")
+    
+    find_new_lead_SNP_df <- colocInputFile %>% dplyr::select(SNP, all_of(qtl_all_chrom), all_of(trait_BPcol), all_of(qtl_all_pvalue), all_of(trait_Pcol)) %>% dplyr::select(rsid = SNP, chromosome = all_of(qtl_all_chrom), position = all_of(trait_BPcol), pval = all_of(trait_Pcol))
+    find_new_lead_SNP_df$chromosome = as.integer(gsub('[a-zA-Z]', '', find_new_lead_SNP_df$chromosome)) 
+    
+    ld_clump_df <- find_new_lead_SNP_df %>%
+    ld_clump(bfile = plink_bfile, plink_bin = "plink", clump_kb = clump_KB , clump_r2 = clump_R2)
+    
+    #This was left in commented out in the sQTL code
+    #ld_clump(bfile = "/project/voight_GWAS/wbone/NGWAMA/data_maf0.01_rs_ref/data_maf0.01_rs_ref", plink_bin = "plink", clump_kb = 500, clump_r2 = 0.2)
+
+    lead_SNP <- as.character(ld_clump_df[which.min(ld_clump_df$pval),]$rsid)
+    return (lead_SNP)
+}
+
+
+create_lead_snp_df <- function(colocInputFile, qtl_all_chrom, qtl_all_pvalue) {
+  leadSNP_DF = colocInputFile#[colocInputFile$SNP == lead_SNP,]
+  leadSNP_DF[[eQTL_all_chrom]] = as.integer(gsub('[a-zA-Z]', '', leadSNP_DF[[eQTL_all_chrom]])) 
+  leadSNP_DF = leadSNP_DF %>% dplyr::select(SNP, all_of(eQTL_all_chrom), all_of(trait_BPcol), all_of(eQTL_all_pvalue), all_of(trait_Pcol))
+  
+  return (leadSNP_DF)
+}
+
+
+plot_trait_data_first_iteration <- function(colocInputFile, qtl_all_chrom, leadSNP_DF) {
+    #plot trait data if it is the first time going through the loop	
+    trait_leadSNP_DF = leadSNP_DF %>% dplyr::select(rsid = SNP, chromosome = all_of(qtl_all_chrom), position = all_of(trait_BPcol), p_value = all_of(trait_Pcol))
+    trait_plot_title = paste(lead_SNP, trait)
+    
+    RA_plot <- gg_regional_association_plink(trait_leadSNP_DF, p_value_threshold = clump_P1, lead_snps = lead_SNP, bfile = plink_bfile, plink_bin = "plink", plot_distance = bps_in_region, plot_title = paste(trait_plot_title, "Regional Association Plot"), plot_subtitle = expression(""), region_recomb = region_recomb)
+    
+    #make a gene track plot
+    gene_track_plot <- ggbio_genetrack(chrom_str, colocStart, colocStop)
+    
+    #combine the RA plot and the gene track plot
+    RA_plot <- ggarrange(RA_plot, gene_track_plot, widths=c(1,1),heights=c(5,3))
+    
+    return (RA_plot)
+}
+
+
+gene_track_plot <- function(qtl_all_chrom, qtl_all_pvalue) {
+  eQTL_leadSNP_DF = leadSNP_DF %>% dplyr::select(rsid = SNP, chromosome = all_of(qtl_all_chrom), position = all_of(trait_BPcol), p_value = all_of(qtl_all_pvalue))
+  eQTL_plot_title = paste(lead_SNP, geneSymbol, tissue)
+  RA_plot <- gg_regional_association_plink(eQTL_leadSNP_DF, p_value_threshold = clump_P1, lead_snps = lead_SNP, bfile = plink_bfile, plink_bin = "plink", plot_distance = bps_in_region, plot_title = paste(eQTL_plot_title, "Regional Association Plot"), plot_subtitle = expression("GTEx v8"), region_recomb = region_recomb)
+  
+  #make a gene track plot
+  gene_track_plot <- ggbio_genetrack(chrom_str, colocStart, colocStop)
+  
+  #combine the RA plot and the gene track plot
+  RA_plot <- ggarrange(RA_plot, gene_track_plot, widths=c(1,1),heights=c(5,3))
+  return (RA_plot)
+}
+
+
+handle_tissue_table <- function(tissueTable) {
+  for (i in 1:nrow(tissueTable)) {
+    sigpair_filename = tissueTable$sigPairsTabixFilename[i]
+    if (is.na(sigpair_filename)) {
+      print(paste(tissueTable$Tissue[i], "is not available in the significant pairs files"))
+      next
+    }
+    
+    file = paste0(sig_qtl_tabix_dir, "/", sigpair_filename) 
+    
+    system(paste("tabix", file, lead_SNP_pos_tabix_with_chr, ">", paste0(lead_SNP, "_temp.csv"))) 
+    system(paste("tabix", file, lead_SNP_pos_tabix_without_chr, ">>", paste0(lead_SNP, "_temp.csv"))) 
+    
+    system(paste0("sed -i \"s/$/\t", tissueTable$Tissue[i], "/\" ", lead_SNP, "_temp.csv"))
+    system(paste0("cat ", lead_SNP, "_temp.csv >> ", lead_SNP, ".csv"))
+  }
+}
+
+
+get_gene_tissue_region <- function() {
+  if(qtlType == "eqtl"){
+    return (eGeneTissue_region %>% dplyr::select(all_of(eQTL_all_chrom), all_of(eQTL_all_chromEnd), all_of(eQTL_all_geneID), all_of(eQTL_all_pvalue)))
+  } else if(qtlType == "sqtl"){
+    return (eGeneTissue_region %>% dplyr::select(all_of(sQTL_all_chrom), all_of(sQTL_all_chromEnd), all_of(sQTL_all_geneID), all_of(sQTL_all_pvalue), all_of(sQTL_all_intron_chr), all_of(sQTL_all_intron_bp_first), all_of(sQTL_all_intron_bp_end), all_of(sQTL_all_intron_clu)))
+  }
+}
+
+
+run_liftover <- function() {
+  repeat {
+    print("running liftOver")
+    bed_liftover = data.frame("chr" = c(paste0("chr", chrom), paste0("chr", chrom)), "bp1" = c(colocStart - 1, colocStop - 1), "bp2" = c(colocStart, colocStop)) 
+    write.table(bed_liftover,file=paste0("temp_hg19.bed"),sep="\t",quote = FALSE,row.names=FALSE,col.names=FALSE)
+    
+    #generate liftOver command
+    liftOver_command = paste( "liftOver temp_hg19.bed", liftOver_chain, "temp_hg38.bed temp_hg19.unmapped -bedPlus=3 -tab", sep=" ")
+    system(liftOver_command)
+    
+    hg38_positions = as.data.frame(read.table("temp_hg38.bed", header=FALSE, sep="\t")) 
+    
+    if (!is.na(hg38_positions[2,3])) {
+      break
+    } else {
+      unmapped = fread(file="temp_hg19.unmapped", sep='\t', header=FALSE)
+      if (unmapped[1,3] == colocStart) {
+        print(paste("Could not map to hg38:", colocStart))
+        colocStart = colocStart + 5000
+      } else if (unmapped[1,3] == colocStop) {
+        print(paste("Could not map to hg38:", colocStop))
+        colocStop = colocStop - 5000
+      }
+      print(paste("Trying new region:", colocStart, "-", colocStop)) 
+      
+      if (colocStart >= colocStop) {
+        print("Could not perform liftover")
+        quit(status=0)
+      }
+    }
+  }
+
+  return (hg38_positions)
+}
+
+
+format_tissue <- function(tissue) {
+  #parentheses are causing issues too
+  tissue_noSpace = gsub("\\(","",tissue)
+  tissue_noSpace = gsub("\\)","",tissue_noSpace)
+  # The tissue names have any whitespace in them and we want to use these in the output file names so replace " " with "_"
+  return(gsub("[[:space:]]","_",tissue_noSpace))
+}
+
+
+validate_build <- function(build, hg38_positions) {
+  if (build == "hg38") {
+    system(paste0("tabix ", tabix_allpair_path, " ", chrom, ":", colocStart, "-", colocStop, " >> ", eGeneTissueInputFile))
+    system(paste0("tabix ", tabix_allpair_path, " chr", chrom, ":", colocStart, "-", colocStop, " >> ", eGeneTissueInputFile))
+  } else if (build == "hg19") {
+    system(paste0("tabix ", tabix_allpair_path, " ", chrom, ":", hg38_positions[1,3], "-", hg38_positions[2,3], " >> ", eGeneTissueInputFile))    
+    system(paste0("tabix ", tabix_allpair_path, " chr", chrom, ":", hg38_positions[1,3], "-", hg38_positions[2,3], " >> ", eGeneTissueInputFile))    
+  } else {
+    print("ERROR: Please specify build: \"hg19\" or \"hg38\"")
+    quit()
+  }
+}
+
+
+eqtl_colocalization <- function() {
+  colocInputFile = prep_coloc_input_file()
+  write_coloc_input_file(colocInputFile)
+  
+  print("Running coloc")
+
+  #run coloc
+  coloc_results = get_coloc_results(colocInputFile, eQTL_all_pvalue)
+  write_table_to_file(coloc_results)
+  
+  #generate regional association plot
+  #find lead SNP in LD reference if needed
+  if (SNPinLDref == TRUE) {
+    print(lead_SNP)
+  } else {
+    print("lead SNP is not in the provided LD reference, so we need to find a different SNP for making the RA plots")
+    lead_SNP <- find_lead_snp_in_ld(colocInputFile, eQTL_all_chrom, eQTL_all_pvalue)
+  }  
+  
+  leadSNP_DF = create_lead_snp_df(colocInputFile, eQTL_all_chrom, eQTL_all_pvalue)
+  
+  if (i == 1) {
+    RA_plot <- plot_trait_data_first_iteration(colocInputFile, eQTL_all_chrom, leadSNP_DF)
+    pdf(file = paste0(lead_SNP, "_", trait,".pdf"), paper = 'USr', width = 15, height = 20)  
+    print(RA_plot)
+    dev.off()
+  }
+  
+  eQTL_leadSNP_DF = leadSNP_DF %>% dplyr::select(rsid = SNP, chromosome = all_of(eQTL_all_chrom), position = all_of(trait_BPcol), p_value = all_of(eQTL_all_pvalue))
+  eQTL_plot_title = paste(lead_SNP, geneSymbol, tissue)
+  RA_plot <- gg_regional_association_plink(eQTL_leadSNP_DF, p_value_threshold = clump_P1, lead_snps = lead_SNP, bfile = plink_bfile, plink_bin = "plink", plot_distance = bps_in_region, plot_title = paste(eQTL_plot_title, "Regional Association Plot"), plot_subtitle = expression("GTEx v8"), region_recomb = region_recomb)
+
+  #make a gene track plot
+  gene_track_plot <- ggbio_genetrack(chrom_str, colocStart, colocStop)
+
+  #combine the RA plot and the gene track plot
+  RA_plot <- ggarrange(RA_plot, gene_track_plot, widths=c(1,1),heights=c(5,3))
+  
+  pdf(file = paste0(lead_SNP, "_", geneSymbol, "_", tissue,".pdf"), paper = 'USr', width = 15, height = 20)  
+  print(RA_plot)
+  dev.off()
+}
+
+
+sqtl_colocalization <- function() {
+  colocInputMasterFile = prep_coloc_input_file(qtlType)       
+  
+  #combine intron columns
+  colocInputMasterFile$intronID = paste(colocInputMasterFile[[sQTL_all_intron_chr]], colocInputMasterFile[[sQTL_all_intron_bp_first]], colocInputMasterFile[[sQTL_all_intron_bp_end]], colocInputMasterFile[[sQTL_all_intron_clu]], colocInputMasterFile[[sQTL_all_geneID]], sep=":")
+  
+  print("finding unique introns")
+  #find all unique introns
+  uniqueIntrons = unique(colocInputMasterFile$intronID)
+  
+  #loop through unique introns
+  for(j in 1:length(uniqueIntrons)) {
+    print(uniqueIntrons[j])
+    intronID = uniqueIntrons[j]
+    
+    #grep intron lines from colocInputMasterFile
+    intron_lines = grepl(intronID, colocInputMasterFile$intronID)
+    colocInputFile = unique(colocInputMasterFile[intron_lines,])
+    
+    # make a eGene-Tissue and trait prefix for file names
+    out_prefix = paste(geneSymbol,intronID,tissue_noSpace,trait,sep="_")
+    
+    write_coloc_input_file(colocInputFile)
+
+    print("Running coloc")
+
+    #run coloc
+    coloc_results = get_coloc_results(colocInputFile, eQTL_all_pvalue)
+    write_table_to_file(coloc_results)
+    
+    #generate regional association plot
+    #find lead SNP in LD reference if needed
+    if (SNPinLDref == TRUE) {
+      print(lead_SNP)
+    } else {
+      print("lead SNP is not in the provided LD reference, so we need to find a different SNP for making the RA plots")
+      lead_SNP <- find_lead_snp_in_ld(colocInputFile, sQTL_all_chrom, sQTL_all_pvalue)
+    }
+    
+    leadSNP_DF = create_lead_snp_df(colocInputFile = , sQTL_all_chrom, sQTL_all_pvalue)
+
+    if (i == 1 && j == 1) {
+      RA_plot <- plot_trait_data_first_iteration(colocInputFile, sQTL_all_chrom, leadSNP_DF)
+      pdf(file = paste0(lead_SNP, "_", trait,".pdf"), paper = 'USr', width = 15, height = 20)  
+      print(RA_plot)      
+      dev.off()
+    }
+    
+    sQTL_leadSNP_DF = leadSNP_DF %>% dplyr::select(rsid = SNP, chromosome = all_of(sQTL_all_chrom), position = all_of(trait_BPcol), p_value = all_of(sQTL_all_pvalue))
+    sQTL_plot_title = paste(lead_SNP, geneSymbol, tissue)
+    RA_plot <- gg_regional_association_plink(sQTL_leadSNP_DF, p_value_threshold = clump_P1, lead_snps = lead_SNP, bfile = plink_bfile, plink_bin = "plink", plot_distance = bps_in_region, plot_title = paste(sQTL_plot_title, "Regional Association Plot"), plot_subtitle = expression("GTEx v8"), region_recomb = region_recomb)
+    
+    #make a gene track plot
+    gene_track_plot <- ggbio_genetrack(chrom_str, colocStart, colocStop)
+    
+    #combine the RA plot and the gene track plot
+    RA_plot <- ggarrange(RA_plot, gene_track_plot, widths=c(1,1),heights=c(5,3))
+    
+    pdf(file = paste0(lead_SNP, "_", geneSymbol, "_", intronID, "_", tissue,".pdf"), paper = 'USr', width = 15, height = 20)
+    print(RA_plot)
+    dev.off()
+  }
+}
+
+
+################################ Main Workflow starts here ################################ 
 #Read in the arguments from the config file
 source("QTL_config.R")
 source(setup_config_R)
 
-#Print all of the config file settings to screen or the stnd out file
-print("trait")
-print(trait)
-print("trait_file_header_info")
-print(traitFilePath)
-print(trait_A1col)
-print(trait_A2col)
-print(trait_SNPcol)
-print(trait_CHRcol)
-print(trait_BPcol)
-print(trait_Pcol)
-print(trait_Ncol)
-print(trait_MAFcol)
-print("traitType:")
-print(traitType)
-print(traitProp)
-print("Locus Info:")
-print(chrom)
-print(colocStart)
-print(colocStop)
-print(lead_SNP)
-print("QTL type:")
-print(qtlType)
+qtl_vars <- list(
+  "eqtl" = list(
+    "sig_qtl_tabix_dir" = eQTL_sig_qtl_tabix_dir,
+    "sig_geneID_col" = eQTL_sig_geneID_col,
+    "all_qtl_tabix_dir" = eQTL_all_qtl_tabix_dir,
+    "all_header" = eQTL_all_header,
+    "all_geneID" = eQTL_all_geneID,
+    "all_chrom" = eQTL_all_chrom,
+    "all_chromEnd" = eQTL_all_chromEnd,
+    "all_pvalue" = eQTL_all_pvalue,
+    "QTL_tissue_table" = eQTL_tissue_table),
+  "sqtl" = list(
+    "sig_qtl_tabix_dir" = sQTL_sig_qtl_tabix_dir,
+    "sig_geneID_col" = sQTL_sig_geneID_col,
+    "all_qtl_tabix_dir" = sQTL_all_qtl_tabix_dir,
+    "all_header" = sQTL_all_header,
+    "all_geneID" = sQTL_all_geneID,
+    "all_chrom" = sQTL_all_chrom,
+    "all_chromEnd" = sQTL_all_chromEnd,
+    "all_pvalue" = sQTL_all_pvalue,
+    "QTL_tissue_table" = sQTL_tissue_table
+  )
+)
+
+print_config_settings()
 
 # Set up QTL variables for either eQTL or sQTL
-if (qtlType == "eqtl") {
-    sig_qtl_tabix_dir = eQTL_sig_qtl_tabix_dir
-    sig_geneID_col = eQTL_sig_geneID_col
-    all_qtl_tabix_dir = eQTL_all_qtl_tabix_dir
-    all_header = eQTL_all_header
-    all_geneID = eQTL_all_geneID
-    all_chrom = eQTL_all_chrom
-    all_chromEnd = eQTL_all_chromEnd
-    all_pvalue = eQTL_all_pvalue
-    QTL_tissue_table = eQTL_tissue_table
-} else if (qtlType == "sqtl") {
-    sig_qtl_tabix_dir = sQTL_sig_qtl_tabix_dir
-    sig_geneID_col = sQTL_sig_geneID_col
-    all_qtl_tabix_dir = sQTL_all_qtl_tabix_dir
-    all_header = sQTL_all_header
-    all_geneID = sQTL_all_geneID
-    all_chrom = sQTL_all_chrom
-    all_chromEnd = sQTL_all_chromEnd
-    all_pvalue = sQTL_all_pvalue
-    QTL_tissue_table = sQTL_tissue_table
+if (qtlType == "eqtl" || qtlType == "sqtl") {
+    sig_qtl_tabix_dir = qtl_vars[[qtlType]][["sig_qtl_tabix_dir"]]
+    sig_geneID_col = qtl_vars[[qtlType]][["sig_geneID_col"]]
+    all_qtl_tabix_dir = qtl_vars[[qtlType]][["all_qtl_tabix_dir"]]
+    all_header = qtl_vars[[qtlType]][["all_header"]]
+    all_geneID = qtl_vars[[qtlType]][["all_geneID"]]
+    all_chrom = qtl_vars[[qtlType]][["all_chrom"]]
+    all_chromEnd = qtl_vars[[qtlType]][["all_chromEnd"]]
+    all_pvalue = qtl_vars[[qtlType]][["all_pvalue"]]
+    QTL_tissue_table = qtl_vars[[qtlType]][["QTL_tissue_table"]]
 } else {
     print("ERROR: Please specify qtlType: \"eqtl\" or \"sqtl\"")
     quit()
 }
+
 
 #some libraries require the "chr" at the beginning of the chromosome
 chrom_str <- paste0("chr",chrom, sep="")
@@ -244,12 +575,7 @@ SNP_grep_str <- paste('grep','-P', SNP_str, bim_file, ">", "leadSNP_test_file.tx
 system(SNP_grep_str)
 
 fileInfo <- file.info("leadSNP_test_file.txt")
-
-if (fileInfo$size == 0) {
-    SNPinLDref = FALSE
-} else {
-    SNPinLDref = TRUE
-}
+SNPinLDref = (fileInfo$size != 0)
 
 #read in the tissue specific eQLT summary file with the file names added
 trait_region = fread(file=traitFilePath, sep="\t", header=TRUE)
@@ -315,21 +641,7 @@ lead_SNP_pos = hash_table[[lead_SNP]]
 lead_SNP_pos_tabix_with_chr = paste0(gsub("_",":",lead_SNP_pos), "-", gsub("^.*?_","",lead_SNP_pos))
 lead_SNP_pos_tabix_without_chr = paste0(gsub("chr", "", gsub("_",":",lead_SNP_pos)), "-", gsub("^.*?_","",lead_SNP_pos))
 
-for (i in 1:nrow(tissueTable)) {
-    sigpair_filename = tissueTable$sigPairsTabixFilename[i]
-    if (is.na(sigpair_filename)) {
-        print(paste(tissueTable$Tissue[i], "is not available in the significant pairs files"))
-        next
-    }
-
-    file = paste0(sig_qtl_tabix_dir, "/", sigpair_filename) 
-
-    system(paste("tabix", file, lead_SNP_pos_tabix_with_chr, ">", paste0(lead_SNP, "_temp.csv"))) 
-    system(paste("tabix", file, lead_SNP_pos_tabix_without_chr, ">>", paste0(lead_SNP, "_temp.csv"))) 
-
-    system(paste0("sed -i \"s/$/\t", tissueTable$Tissue[i], "/\" ", lead_SNP, "_temp.csv"))
-    system(paste0("cat ", lead_SNP, "_temp.csv >> ", lead_SNP, ".csv"))
-}
+handle_tissue_table(tissueTable)
 
 #read in the csv file of eGene-Tissue pairs 
 eGenes = tryCatch({
@@ -358,8 +670,6 @@ for(i in 1:nrow(eGenes)){
 
     })
 
-    tissue <- eGenes[i, length(eGenes)]
-    
     print(geneID)
     print(geneSymbol)
 
@@ -368,6 +678,7 @@ for(i in 1:nrow(eGenes)){
         print(paste("Using first gene symbol: ", geneSymbol))
     }
 
+    tissue <- eGenes[i, length(eGenes)]
     print(tissue)
 
     # find the all pair file that contains the tissue of interest
@@ -385,11 +696,7 @@ for(i in 1:nrow(eGenes)){
     tabix_allpair_path = paste0(all_qtl_tabix_dir, allpair_filename)
     qtl_N <- tissueLine$NumberRNASeqandGTSamples
 
-    #parentheses are causing issues too
-    tissue_noSpace = gsub("\\(","",tissue)
-    tissue_noSpace = gsub("\\)","",tissue_noSpace)
-    # The tissue names have any whitespace in them and we want to use these in the output file names so replace " " with "_"
-    tissue_noSpace = gsub("[[:space:]]","_",tissue_noSpace)
+    tissue_noSpace = format_tissue(tissue)
     
     # make a eGene-Tissue and trait prefix for file names
     if (qtlType == "eqtl") {
@@ -398,51 +705,13 @@ for(i in 1:nrow(eGenes)){
 
     #run liftover on colocStart and colocStop if in HG19
     if (build == "hg19") {	
-        repeat {
-            print("running liftOver")
-            bed_liftover = data.frame("chr" = c(paste0("chr", chrom), paste0("chr", chrom)), "bp1" = c(colocStart - 1, colocStop - 1), "bp2" = c(colocStart, colocStop)) 
-            write.table(bed_liftover,file=paste0("temp_hg19.bed"),sep="\t",quote = FALSE,row.names=FALSE,col.names=FALSE)
-
-            #generate liftOver command
-            liftOver_command = paste( "liftOver temp_hg19.bed", liftOver_chain, "temp_hg38.bed temp_hg19.unmapped -bedPlus=3 -tab", sep=" ")
-            system(liftOver_command)
-
-            hg38_positions = as.data.frame(read.table("temp_hg38.bed", header=FALSE, sep="\t")) 
-
-            if (!is.na(hg38_positions[2,3])) {
-                break
-            } else {
-                unmapped = fread(file="temp_hg19.unmapped", sep='\t', header=FALSE)
-                if (unmapped[1,3] == colocStart) {
-                    print(paste("Could not map to hg38:", colocStart))
-                    colocStart = colocStart + 5000
-                } else if (unmapped[1,3] == colocStop) {
-                    print(paste("Could not map to hg38:", colocStop))
-                    colocStop = colocStop - 5000
-                }
-                print(paste("Trying new region:", colocStart, "-", colocStop)) 
-
-                if (colocStart >= colocStop) {
-                    print("Could not perform liftover")
-                    quit(status=0)
-                }
-            }
-        }
+        hg38_positions <- run_liftover()
     }
 
     print("Grabbing the all pairs data")    
     #Use tabix to grab data, try both with and without "chr"
     eGeneTissueInputFile = paste(geneSymbol,tissue_noSpace,chrom,colocStart,colocStop,".txt", sep="_")
-    if (build == "hg38") {
-        system(paste0("tabix ", tabix_allpair_path, " ", chrom, ":", colocStart, "-", colocStop, " >> ", eGeneTissueInputFile))
-        system(paste0("tabix ", tabix_allpair_path, " chr", chrom, ":", colocStart, "-", colocStop, " >> ", eGeneTissueInputFile))
-    } else if (build == "hg19") {
-        system(paste0("tabix ", tabix_allpair_path, " ", chrom, ":", hg38_positions[1,3], "-", hg38_positions[2,3], " >> ", eGeneTissueInputFile))    
-        system(paste0("tabix ", tabix_allpair_path, " chr", chrom, ":", hg38_positions[1,3], "-", hg38_positions[2,3], " >> ", eGeneTissueInputFile))    
-    } else {
-        print("ERROR: Please specify build: \"hg19\" or \"hg38\"")
-        quit()
-    }
+    validate_build(build, hg38_positions)
     
     print("reading the all pairs data into R")
     #read the file we just generated from the grep command into R
@@ -496,14 +765,8 @@ for(i in 1:nrow(eGenes)){
           }    
     }
 
-    if (qtlType == "eqtl") {
-        #Keep only the columns that are needed
-        eGeneTissue_region <- eGeneTissue_region %>% dplyr::select(all_of(eQTL_all_chrom), all_of(eQTL_all_chromEnd), all_of(eQTL_all_geneID), all_of(eQTL_all_pvalue))
-    } else if (qtlType == "sqtl") {
-        #Keep only the columns that are needed
-        eGeneTissue_region <- eGeneTissue_region %>% dplyr::select(all_of(sQTL_all_chrom), all_of(sQTL_all_chromEnd), all_of(sQTL_all_geneID), all_of(sQTL_all_pvalue), all_of(sQTL_all_intron_chr), all_of(sQTL_all_intron_bp_first), all_of(sQTL_all_intron_bp_end), all_of(sQTL_all_intron_clu))
-    }
-
+    eGeneTissue_region <- get_gene_tissue_region()
+    
     print("adding rs numbers to the QTL data")
     #add rs genegene,,numbers to the eGeneTissue_region DF
 
@@ -521,244 +784,10 @@ for(i in 1:nrow(eGenes)){
     eGeneTissue_region = merge(eGeneTissue_region, uniqID_DF, by = "chromosome_position")  
 
     ################################ eQTL colocalization and RA Plots ################################ 
-
     if (qtlType == "eqtl") {
-        print("merging the trait and eqtl data on unique ID")
-        #merge the trait and eGeneTissue region DFs on rs numbers
-        colocInputFile = merge(eGeneTissue_region, trait_region, by.x="SNP", by.y=trait_SNPcol_str)
-
-        #remove any NAs
-        colocInputFile = colocInputFile[complete.cases(colocInputFile), ]
-
-        #check for 0s in the trait_Pcol
-        if (0 %in% colocInputFile[[trait_Pcol]]){
-
-            print("WARNING: THERE ARE SNPS WITH P-VALUES OF 0 AT THIS LOCUS. These SNPs have been removed for the Colocalization anlysis and may lead to unusual regional association plots")
-
-            #remove SNPs who's trait P-value is 0 
-            colocInputFile = colocInputFile[colocInputFile[[trait_Pcol]] != 0,]
-
-        }
-
-        #write colocInputFile to file for making locus zoom plots
-        colocInputFile_outputStr = paste(out_prefix,"coloc_input_data.txt",sep="_")
-        write.table(colocInputFile, file= colocInputFile_outputStr, sep="\t", row.names=FALSE, quote=FALSE)
-
-        print("Running coloc")
-        #run coloc
-        if (traitType == "cc"){
-            coloc_results <- coloc.abf(dataset1=list(pvalues=colocInputFile[[trait_Pcol]], N=colocInputFile[[trait_Ncol]], type=traitType, s=traitProp), dataset2=list(pvalues=colocInputFile[[eQTL_all_pvalue]], N=qtl_N, type="quant"),MAF=colocInputFile[[trait_MAFcol_str]])
-        } else {
-            coloc_results <- coloc.abf(dataset1=list(pvalues=colocInputFile[[trait_Pcol]], N=colocInputFile[[trait_Ncol]], type=traitType), dataset2=list(pvalues=colocInputFile[[eQTL_all_pvalue]], N=qtl_N, type="quant"),MAF=colocInputFile[[trait_MAFcol_str]])
-        }
-
-        #prepare useful outputs
-        coloc_results_summary = coloc_results$summary
-        coloc_results_full = coloc_results$results
-
-        #calculate pp4 / pp3 + pp4
-        PP3andPP4 = coloc_results_summary[5] + coloc_results_summary[6]
-
-        pp4_conditional = coloc_results_summary[6] / PP3andPP4
-
-        pp4_conditional = coloc_results_summary[6] / PP3andPP4
-
-        #prep coloc output strings
-        coloc_results_summary_outputStr = paste(out_prefix,"coloc_results_summary.txt",sep="_")
-        coloc_results_full_outputStr = paste(out_prefix,"coloc_results_full.txt",sep="_")
-        coloc_results_pp4_cond_outputStr = paste(out_prefix,"coloc_results_pp4_cond.txt",sep="_")
-
-        #write to file
-        write.table(coloc_results_summary, file=coloc_results_summary_outputStr, sep="\t", row.names=TRUE, quote=FALSE)
-        write.table(coloc_results_full, file=coloc_results_full_outputStr, sep="\t", row.names=FALSE, quote=FALSE)
-        write.table(pp4_conditional, file=coloc_results_pp4_cond_outputStr, sep="\t", row.names=FALSE, quote=FALSE)
-
-        #generate regional association plot
-
-        #find lead SNP in LD reference if needed
-        if (SNPinLDref == TRUE){
-
-            print(lead_SNP)
-
-        } else {
-
-            print("lead SNP is not in the provided LD reference, so we need to find a different SNP for making the RA plots")
-
-            find_new_lead_SNP_df <- colocInputFile %>% dplyr::select(SNP, all_of(eQTL_all_chrom), all_of(trait_BPcol), all_of(eQTL_all_pvalue), all_of(trait_Pcol)) %>% dplyr::select(rsid = SNP, chromosome = all_of(eQTL_all_chrom), position = all_of(trait_BPcol), pval = all_of(trait_Pcol))
-            find_new_lead_SNP_df$chromosome = as.integer(gsub('[a-zA-Z]', '', find_new_lead_SNP_df$chromosome)) 
-
-            ld_clump_df <- find_new_lead_SNP_df %>%
-            ld_clump(bfile = plink_bfile, plink_bin = "plink", clump_kb = clump_KB , clump_r2 = clump_R2)
-
-            lead_SNP <- as.character(ld_clump_df[which.min(ld_clump_df$pval),]$rsid)
-
-        }
-
-
-        leadSNP_DF = colocInputFile#[colocInputFile$SNP == lead_SNP,]
-        leadSNP_DF[[eQTL_all_chrom]] = as.integer(gsub('[a-zA-Z]', '', leadSNP_DF[[eQTL_all_chrom]])) 
-        leadSNP_DF = leadSNP_DF %>% dplyr::select(SNP, all_of(eQTL_all_chrom), all_of(trait_BPcol), all_of(eQTL_all_pvalue), all_of(trait_Pcol))
-
-        if (i == 1) {
-            #plot trait data if it is the first time going through the loop	
-            trait_leadSNP_DF = leadSNP_DF %>% dplyr::select(rsid = SNP, chromosome = all_of(eQTL_all_chrom), position = all_of(trait_BPcol), p_value = all_of(trait_Pcol))
-            trait_plot_title = paste(lead_SNP, trait)
-
-            RA_plot <- gg_regional_association_plink(trait_leadSNP_DF, p_value_threshold = clump_P1, lead_snps = lead_SNP, bfile = plink_bfile, plink_bin = "plink", plot_distance = bps_in_region, plot_title = paste(trait_plot_title, "Regional Association Plot"), plot_subtitle = expression(""), region_recomb = region_recomb)
-            
-            #make a gene track plot
-            gene_track_plot <- ggbio_genetrack(chrom_str, colocStart, colocStop)
-
-            #combine the RA plot and the gene track plot
-            RA_plot <- ggarrange(RA_plot, gene_track_plot, widths=c(1,1),heights=c(5,3))
-
-            pdf(file = paste0(lead_SNP, "_", trait,".pdf"), paper = 'USr', width = 15, height = 20)  
-            print(RA_plot)
-            dev.off()
-        }
-
-        eQTL_leadSNP_DF = leadSNP_DF %>% dplyr::select(rsid = SNP, chromosome = all_of(eQTL_all_chrom), position = all_of(trait_BPcol), p_value = all_of(eQTL_all_pvalue))
-        eQTL_plot_title = paste(lead_SNP, geneSymbol, tissue)
-        RA_plot <- gg_regional_association_plink(eQTL_leadSNP_DF, p_value_threshold = clump_P1, lead_snps = lead_SNP, bfile = plink_bfile, plink_bin = "plink", plot_distance = bps_in_region, plot_title = paste(eQTL_plot_title, "Regional Association Plot"), plot_subtitle = expression("GTEx v8"), region_recomb = region_recomb)
-
-        #make a gene track plot
-        gene_track_plot <- ggbio_genetrack(chrom_str, colocStart, colocStop)
-
-        #combine the RA plot and the gene track plot
-        RA_plot <- ggarrange(RA_plot, gene_track_plot, widths=c(1,1),heights=c(5,3))
-
-        pdf(file = paste0(lead_SNP, "_", geneSymbol, "_", tissue,".pdf"), paper = 'USr', width = 15, height = 20)  
-        print(RA_plot)
-        dev.off()
-
+      eqtl_colocalization()
     ################################ sQTL colocalization and RA Plots ################################  
-
     } else if (qtlType == "sqtl") {
-        print("merging the trait and sqtl data on unique ID")
-        #merge the trait and eGeneTissue region DFs on rs numbers
-        colocInputMasterFile = merge(eGeneTissue_region, trait_region, by.x="SNP", by.y=trait_SNPcol_str)
-
-        #remove any NAs
-        colocInputMasterFile = colocInputMasterFile[complete.cases(colocInputMasterFile), ]
-
-        if (0 %in% colocInputMasterFile[[trait_Pcol]]){
-
-            print("WARNING: THERE ARE SNPS WITH P-VALUES OF 0 AT THIS LOCUS. These SNPs have been removed for the Colocalization analysis and may lead to unusual regional association plots")
-
-            #remove SNPs who's trait P-value is 0 
-            colocInputMasterFile = colocInputMasterFile[colocInputMasterFile[[trait_Pcol]] != 0,]
-
-        }        
-
-        #combine intron columns
-        colocInputMasterFile$intronID = paste(colocInputMasterFile[[sQTL_all_intron_chr]], colocInputMasterFile[[sQTL_all_intron_bp_first]], colocInputMasterFile[[sQTL_all_intron_bp_end]], colocInputMasterFile[[sQTL_all_intron_clu]], colocInputMasterFile[[sQTL_all_geneID]], sep=":")
-
-        print("finding unique introns")
-        #find all unique introns
-        uniqueIntrons = unique(colocInputMasterFile$intronID)
-
-        #loop through unique introns
-        for(j in 1:length(uniqueIntrons)) {
-            print(uniqueIntrons[j])
-            intronID = uniqueIntrons[j]
-
-            #grep intron lines from colocInputMasterFile
-            intron_lines = grepl(intronID, colocInputMasterFile$intronID)
-            colocInputFile = unique(colocInputMasterFile[intron_lines,])
-       
-            # make a eGene-Tissue and trait prefix for file names
-            out_prefix = paste(geneSymbol,intronID,tissue_noSpace,trait,sep="_")
-
-            #write colocInputFile to file for making locus zoom plots
-            colocInputFile_outputStr = paste(out_prefix,"coloc_input_data.txt",sep="_")
-            write.table(colocInputFile, file= colocInputFile_outputStr, sep="\t", row.names=FALSE, quote=FALSE)
-
-            print("Running coloc")
-            #run coloc
-            if (traitType == "cc"){
-                coloc_results <- coloc.abf(dataset1=list(pvalues=colocInputFile[[trait_Pcol]], N=colocInputFile[[trait_Ncol]], type=traitType, s=traitProp), dataset2=list(pvalues=colocInputFile[[sQTL_all_pvalue]], N=qtl_N, type="quant"),MAF=colocInputFile[[trait_MAFcol_str]])
-            } else {
-                coloc_results <- coloc.abf(dataset1=list(pvalues=colocInputFile[[trait_Pcol]], N=colocInputFile[[trait_Ncol]], type=traitType), dataset2=list(pvalues=colocInputFile[[sQTL_all_pvalue]], N=qtl_N, type="quant"),MAF=colocInputFile[[trait_MAFcol_str]])
-            }
-
-            #prepare useful outputs
-            coloc_results_summary = coloc_results$summary
-            coloc_results_full = coloc_results$results
-
-            #calculate pp4 / pp3 + pp4
-            PP3andPP4 = coloc_results_summary[5] + coloc_results_summary[6]
-
-            pp4_conditional = coloc_results_summary[6] / PP3andPP4
-
-            pp4_conditional = coloc_results_summary[6] / PP3andPP4
-
-            #prep coloc output strings
-            coloc_results_summary_outputStr = paste(out_prefix,"coloc_results_summary.txt",sep="_")
-            coloc_results_full_outputStr = paste(out_prefix,"coloc_results_full.txt",sep="_")
-            coloc_results_pp4_cond_outputStr = paste(out_prefix,"coloc_results_pp4_cond.txt",sep="_")
-
-            #write to file
-            write.table(coloc_results_summary, file=coloc_results_summary_outputStr, sep="\t", row.names=TRUE, quote=FALSE)
-            write.table(coloc_results_full, file=coloc_results_full_outputStr, sep="\t", row.names=FALSE, quote=FALSE)
-            write.table(pp4_conditional, file=coloc_results_pp4_cond_outputStr, sep="\t", row.names=FALSE, quote=FALSE)
-
-            #generate regional association plot
-
-            #find lead SNP in LD reference if needed
-            if (SNPinLDref == TRUE){
-
-                print(lead_SNP)
-
-            } else {
-
-                print("lead SNP is not in the provided LD reference, so we need to find a different SNP for making the RA plots")
-
-                find_new_lead_SNP_df <- colocInputFile %>% dplyr::select(SNP, all_of(sQTL_all_chrom), all_of(trait_BPcol), all_of(sQTL_all_pvalue), all_of(trait_Pcol)) %>% dplyr::select(rsid = SNP, chromosome = all_of(sQTL_all_chrom), position = all_of(trait_BPcol), pval = all_of(trait_Pcol))
-                find_new_lead_SNP_df$chromosome = as.integer(gsub('[a-zA-Z]', '', find_new_lead_SNP_df$chromosome))
-
-                ld_clump_df <- find_new_lead_SNP_df %>%
-                ld_clump(bfile = plink_bfile, plink_bin = "plink", clump_kb = clump_KB , clump_r2 = clump_R2)
-                #ld_clump(bfile = "/project/voight_GWAS/wbone/NGWAMA/data_maf0.01_rs_ref/data_maf0.01_rs_ref", plink_bin = "plink", clump_kb = 500, clump_r2 = 0.2)
-
-                lead_SNP <- as.character(ld_clump_df[which.min(ld_clump_df$pval),]$rsid)
-
-            }
-
-
-            leadSNP_DF = colocInputFile#[colocInputFile$SNP == lead_SNP,]
-            leadSNP_DF[[sQTL_all_chrom]] = as.integer(gsub('[a-zA-Z]', '', leadSNP_DF[[sQTL_all_chrom]]))
-            leadSNP_DF = leadSNP_DF %>% dplyr::select(SNP, all_of(sQTL_all_chrom), all_of(trait_BPcol), all_of(sQTL_all_pvalue), all_of(trait_Pcol))
-
-            if (i == 1 && j == 1) {
-                #plot for trait 
-                trait_leadSNP_DF = leadSNP_DF %>% dplyr::select(rsid = SNP, chromosome = all_of(sQTL_all_chrom), position = all_of(trait_BPcol), p_value = all_of(trait_Pcol))
-                trait_plot_title = paste(lead_SNP, trait)
-                RA_plot <- gg_regional_association_plink(trait_leadSNP_DF, p_value_threshold = clump_P1, lead_snps = lead_SNP, bfile = plink_bfile, plink_bin = "plink", plot_distance = bps_in_region, plot_title = paste(trait_plot_title, "Regional Association Plot"), plot_subtitle = expression(""), region_recomb = region_recomb)
-
-                #make a gene track plot
-                gene_track_plot <- ggbio_genetrack(chrom_str, colocStart, colocStop)
-
-                #combine the RA plot and the gene track plot
-                RA_plot <- ggarrange(RA_plot, gene_track_plot, widths=c(1,1),heights=c(5,3))
-
-                pdf(file = paste0(lead_SNP, "_", trait,".pdf"), paper = 'USr', width = 15, height = 20)
-                print(RA_plot)
-                dev.off()
-            }
-                
-            sQTL_leadSNP_DF = leadSNP_DF %>% dplyr::select(rsid = SNP, chromosome = all_of(sQTL_all_chrom), position = all_of(trait_BPcol), p_value = all_of(sQTL_all_pvalue))
-            sQTL_plot_title = paste(lead_SNP, geneSymbol, tissue)
-            RA_plot <- gg_regional_association_plink(sQTL_leadSNP_DF, p_value_threshold = clump_P1, lead_snps = lead_SNP, bfile = plink_bfile, plink_bin = "plink", plot_distance = bps_in_region, plot_title = paste(sQTL_plot_title, "Regional Association Plot"), plot_subtitle = expression("GTEx v8"), region_recomb = region_recomb)
-
-            #make a gene track plot
-            gene_track_plot <- ggbio_genetrack(chrom_str, colocStart, colocStop)
-
-            #combine the RA plot and the gene track plot
-            RA_plot <- ggarrange(RA_plot, gene_track_plot, widths=c(1,1),heights=c(5,3))
-
-            pdf(file = paste0(lead_SNP, "_", geneSymbol, "_", intronID, "_", tissue,".pdf"), paper = 'USr', width = 15, height = 20)
-            print(RA_plot)
-            dev.off()
-        }
+        sqtl_colocalization()
     }
 }
