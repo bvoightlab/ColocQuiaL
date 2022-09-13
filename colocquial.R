@@ -222,7 +222,7 @@ get_coloc_results <- function(colocInputFile, qtl_all_pvalue) {
 if (traitType == "cc") {
     return(coloc.abf(dataset1=list(pvalues=colocInputFile[[trait_Pcol]], N=colocInputFile[[trait_Ncol]], type=traitType, s=traitProp), dataset2=list(pvalues=colocInputFile[[qtl_all_pvalue]], N=qtl_N, type="quant"),MAF=colocInputFile[[trait_MAFcol_str]]))
   } else {
-    return(oloc.abf(dataset1=list(pvalues=colocInputFile[[trait_Pcol]], N=colocInputFile[[trait_Ncol]], type=traitType), dataset2=list(pvalues=colocInputFile[[qtl_all_pvalue]], N=qtl_N, type="quant"),MAF=colocInputFile[[trait_MAFcol_str]]))
+    return(coloc.abf(dataset1=list(pvalues=colocInputFile[[trait_Pcol]], N=colocInputFile[[trait_Ncol]], type=traitType), dataset2=list(pvalues=colocInputFile[[qtl_all_pvalue]], N=qtl_N, type="quant"),MAF=colocInputFile[[trait_MAFcol_str]]))
   }
 }
 
