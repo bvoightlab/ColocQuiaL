@@ -349,7 +349,15 @@ eqtl_colocalization <- function() {
     dev.off()
   }
   
-  RA_plot <- gene_track_plot(colocInputFile, eQTL_all_chrom, eQTL_all_pvalue)
+  eQTL_leadSNP_DF = leadSNP_DF %>% dplyr::select(rsid = SNP, chromosome = all_of(eQTL_all_chrom), position = all_of(trait_BPcol), p_value = all_of(eQTL_all_pvalue))
+  eQTL_plot_title = paste(lead_SNP, geneSymbol, tissue)
+  RA_plot <- gg_regional_association_plink(eQTL_leadSNP_DF, p_value_threshold = clump_P1, lead_snps = lead_SNP, bfile = plink_bfile, plink_bin = "plink", plot_distance = bps_in_region, plot_title = paste(eQTL_plot_title, "Regional Association Plot"), plot_subtitle = expression("GTEx v8"), region_recomb = region_recomb)
+
+  #make a gene track plot
+  gene_track_plot <- ggbio_genetrack(chrom_str, colocStart, colocStop)
+
+  #combine the RA plot and the gene track plot
+  RA_plot <- ggarrange(RA_plot, gene_track_plot, widths=c(1,1),heights=c(5,3))
   
   pdf(file = paste0(lead_SNP, "_", geneSymbol, "_", tissue,".pdf"), paper = 'USr', width = 15, height = 20)  
   print(RA_plot)
