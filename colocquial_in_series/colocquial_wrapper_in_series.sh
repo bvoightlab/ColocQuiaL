@@ -6,7 +6,7 @@
 module load plink/1.90Beta4.5
 module load R/3.6.3
 module load bedtools2
-module load tabix
+module load htslib #or module load tabix
 module load liftOver
 
 echo "modules loaded"

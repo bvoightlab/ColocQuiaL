@@ -3,7 +3,7 @@
 # This script takes GTEx v8 eQTL significant pair files and outputs index file for tabix
 # $1 is path to tissue file
 
-module load tabix
+module load htslib #or module load tabix
 module load vcftools
 
 tissueName=$(echo "${1##*/}" | cut -f 1,2 -d '.')
