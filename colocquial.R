@@ -173,7 +173,7 @@ ggbio_genetrack <- function(chrom_str, BPStart, BPStop) {
 
 
 #Print all of the config file settings to screen or the stnd out file
-print_config_settings <-function() {
+print_config_settings <- function() {
   print("trait")
   print(trait)
 
@@ -386,7 +386,7 @@ format_tissue <- function(tissue) {
 }
 
 
-validate_build <-function(build, hg38_positions) {
+validate_build <- function(build, hg38_positions) {
   if (build == "hg38") {
     system(paste0("tabix ", tabix_allpair_path, " ", chrom, ":", colocStart, "-", colocStop, " >> ", eGeneTissueInputFile))
     system(paste0("tabix ", tabix_allpair_path, " chr", chrom, ":", colocStart, "-", colocStop, " >> ", eGeneTissueInputFile))
