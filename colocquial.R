@@ -20,30 +20,6 @@ library(Homo.sapiens)
 library(ggbio)
 library(egg)
 
-qtl_vars <- list(
-  "eqtl" = list(
-    "sig_qtl_tabix_dir" = eQTL_sig_qtl_tabix_dir,
-    "sig_geneID_col" = eQTL_sig_geneID_col,
-    "all_qtl_tabix_dir" = eQTL_all_qtl_tabix_dir,
-    "all_header" = eQTL_all_header,
-    "all_geneID" = eQTL_all_geneID,
-    "all_chrom" = eQTL_all_chrom,
-    "all_chromEnd" = eQTL_all_chromEnd,
-    "all_pvalue" = eQTL_all_pvalue,
-    "QTL_tissue_table" = eQTL_tissue_table),
-  "sqtl" = list(
-    "sig_qtl_tabix_dir" = sQTL_sig_qtl_tabix_dir,
-    "sig_geneID_col" = sQTL_sig_geneID_col,
-    "all_qtl_tabix_dir" = sQTL_all_qtl_tabix_dir,
-    "all_header" = sQTL_all_header,
-    "all_geneID" = sQTL_all_geneID,
-    "all_chrom" = sQTL_all_chrom,
-    "all_chromEnd" = sQTL_all_chromEnd,
-    "all_pvalue" = sQTL_all_pvalue,
-    "QTL_tissue_table" = sQTL_tissue_table
-  )
-)
-
 
 ld_extract <- function(variants, bfile, plink_bin) {
   # Make textfile
@@ -481,6 +457,30 @@ handle_tissue_table <- function(tissueTable){
 #Read in the arguments from the config file
 source("QTL_config.R")
 source(setup_config_R)
+
+qtl_vars <- list(
+  "eqtl" = list(
+    "sig_qtl_tabix_dir" = eQTL_sig_qtl_tabix_dir,
+    "sig_geneID_col" = eQTL_sig_geneID_col,
+    "all_qtl_tabix_dir" = eQTL_all_qtl_tabix_dir,
+    "all_header" = eQTL_all_header,
+    "all_geneID" = eQTL_all_geneID,
+    "all_chrom" = eQTL_all_chrom,
+    "all_chromEnd" = eQTL_all_chromEnd,
+    "all_pvalue" = eQTL_all_pvalue,
+    "QTL_tissue_table" = eQTL_tissue_table),
+  "sqtl" = list(
+    "sig_qtl_tabix_dir" = sQTL_sig_qtl_tabix_dir,
+    "sig_geneID_col" = sQTL_sig_geneID_col,
+    "all_qtl_tabix_dir" = sQTL_all_qtl_tabix_dir,
+    "all_header" = sQTL_all_header,
+    "all_geneID" = sQTL_all_geneID,
+    "all_chrom" = sQTL_all_chrom,
+    "all_chromEnd" = sQTL_all_chromEnd,
+    "all_pvalue" = sQTL_all_pvalue,
+    "QTL_tissue_table" = sQTL_tissue_table
+  )
+)
 
 print_config_settings()
 
