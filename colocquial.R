@@ -208,7 +208,7 @@ prep_coloc_input_file <- function() {
     colocInputFile = colocInputFile[complete.cases(colocInputFile), ]
 
     if (0 %in% colocInputFile[[trait_Pcol]]){
-    print("WARNING: THERE ARE SNPS WITH P-VALUES OF 0 AT THIS LOCUS. These SNPs have been removed for the Colocalization anlysis and may lead to unusual regional association plots") # nolint
+    print("WARNING: THERE ARE SNPS WITH P-VALUES OF 0 AT THIS LOCUS. These SNPs have been removed for the Colocalization anlysis and may lead to unusual regional association plots")
     
     #remove SNPs who's trait P-value is 0 # nolint
     colocInputFile = colocInputFile[colocInputFile[[trait_Pcol]] != 0,]
@@ -281,7 +281,7 @@ create_lead_snp_df <- function(colocInputFile, qtl_all_chrom, qtl_all_pvalue) {
 }
 
 #NK
-plot_trait_data_first_iteration <- function(colocInputFile, qtl_all_chrom) {
+plot_trait_data_first_iteration <- function(colocInputFile, qtl_all_chrom, leadSNP_DF) {
 
   #plot trait data if it is the first time going through the loop	
     trait_leadSNP_DF = leadSNP_DF %>% dplyr::select(rsid = SNP, chromosome = all_of(qtl_all_chrom), position = all_of(trait_BPcol), p_value = all_of(trait_Pcol))
@@ -343,7 +343,7 @@ eqtl_colocalization <- function() {
   leadSNP_DF = create_lead_snp_df(colocInputFile, eQTL_all_chrom, eQTL_all_pvalue)
   
   if (i == 1) {
-    RA_plot <- plot_trait_data_first_iteration(colocInputFile, eQTL_all_chrom)
+    RA_plot <- plot_trait_data_first_iteration(colocInputFile, eQTL_all_chrom, leadSNP_DF)
     pdf(file = paste0(lead_SNP, "_", trait,".pdf"), paper = 'USr', width = 15, height = 20)  
     print(RA_plot)
     dev.off()
@@ -411,7 +411,7 @@ sqtl_colocalization <- function() {
     leadSNP_DF = create_lead_snp_df(colocInputFile = , sQTL_all_chrom, sQTL_all_pvalue)
 
     if (i == 1 && j == 1) {
-      RA_plot <- plot_trait_data_first_iteration(colocInputFile, sQTL_all_chrom)
+      RA_plot <- plot_trait_data_first_iteration(colocInputFile, sQTL_all_chrom, leadSNP_DF)
       pdf(file = paste0(lead_SNP, "_", trait,".pdf"), paper = 'USr', width = 15, height = 20)  
       print(RA_plot)      
       dev.off()
