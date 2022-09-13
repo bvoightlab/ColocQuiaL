@@ -202,8 +202,8 @@ print_config_settings <-function() {
 }
 
 #NK
-prep_coloc_input_file <- function(qtl_type) {
-    sprintf("merging the trait and %s on unique ID",qtl_type) 
+prep_coloc_input_file <- function() {
+    sprintf("merging the trait and %s on unique ID",qtlType) 
     colocInputFile = merge(eGeneTissue_region, trait_region, by.x="SNP", by.y=trait_SNPcol_str) # nolint
     colocInputFile = colocInputFile[complete.cases(colocInputFile), ]
 
@@ -360,7 +360,7 @@ eqtl_colocalization <- function() {
 sqtl_colocalization <- function() {
 
   #NK
-  colocInputMasterFile = prep_coloc_input_file(qtl_type)       
+  colocInputMasterFile = prep_coloc_input_file(qtlType)       
   
   #UNIQUE TO SQTL
   {
@@ -597,10 +597,10 @@ eGenes = tryCatch({
 })
 
 #NK - call from before "adding rs ..."
-get_gene_tissue_region <- function(qtl_type) {
-  if(qtl_type == "eqtl"){
+get_gene_tissue_region <- function() {
+  if(qtlType == "eqtl"){
     return (eGeneTissue_region %>% dplyr::select(all_of(eQTL_all_chrom), all_of(eQTL_all_chromEnd), all_of(eQTL_all_geneID), all_of(eQTL_all_pvalue)))
-  } else if(qtl_type == "sqtl"){
+  } else if(qtlType == "sqtl"){
     return (eGeneTissue_region %>% dplyr::select(all_of(sQTL_all_chrom), all_of(sQTL_all_chromEnd), all_of(sQTL_all_geneID), all_of(sQTL_all_pvalue), all_of(sQTL_all_intron_chr), all_of(sQTL_all_intron_bp_first), all_of(sQTL_all_intron_bp_end), all_of(sQTL_all_intron_clu)))
   }
 }
@@ -780,7 +780,7 @@ for(i in 1:nrow(eGenes)){
           }    
     }
 
-    eGeneTissue_region <- get_gene_tissue_region(qtl_type)
+    eGeneTissue_region <- get_gene_tissue_region()
     
     print("adding rs numbers to the QTL data")
     #add rs genegene,,numbers to the eGeneTissue_region DF
