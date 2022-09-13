@@ -160,8 +160,8 @@ gg_regional_association_plink <- function(df, lead_snps = NULL, rsid = rsid, chr
 ggbio_genetrack <- function(chrom_str, BPStart, BPStop) {
 
     gene_region <- GRanges(
-seqnames = Rle(c(chrom_str), c(1)),
-ranges = IRanges(BPStart:BPStop))
+      seqnames = Rle(c(chrom_str), c(1)),
+      ranges = IRanges(BPStart:BPStop))
 
     plot <- autoplot(Homo.sapiens, which = gene_region) + xlim(BPStart,BPStop) + scale_x_continuous(expand=c(0,0))
 
@@ -169,7 +169,6 @@ ranges = IRanges(BPStart:BPStop))
     plot <- plot@ggplot
 
     return(plot)
-
 }
 
 
@@ -258,7 +257,6 @@ write_table_to_file <- function(coloc_results) {
 
 
 find_lead_snp_in_ld <- function(colocInputFile, qtl_all_chrom, qtl_all_pvalue) {
-    
     print("lead SNP is not in the provided LD reference, so we need to find a different SNP for making the RA plots")
     
     find_new_lead_SNP_df <- colocInputFile %>% dplyr::select(SNP, all_of(qtl_all_chrom), all_of(trait_BPcol), all_of(qtl_all_pvalue), all_of(trait_Pcol)) %>% dplyr::select(rsid = SNP, chromosome = all_of(qtl_all_chrom), position = all_of(trait_BPcol), pval = all_of(trait_Pcol))
@@ -285,8 +283,7 @@ create_lead_snp_df <- function(colocInputFile, qtl_all_chrom, qtl_all_pvalue) {
 
 
 plot_trait_data_first_iteration <- function(colocInputFile, qtl_all_chrom, leadSNP_DF) {
-
-  #plot trait data if it is the first time going through the loop	
+    #plot trait data if it is the first time going through the loop	
     trait_leadSNP_DF = leadSNP_DF %>% dplyr::select(rsid = SNP, chromosome = all_of(qtl_all_chrom), position = all_of(trait_BPcol), p_value = all_of(trait_Pcol))
     trait_plot_title = paste(lead_SNP, trait)
     
@@ -303,7 +300,6 @@ plot_trait_data_first_iteration <- function(colocInputFile, qtl_all_chrom, leadS
 
 
 gene_track_plot <- function(qtl_all_chrom, qtl_all_pvalue) {
-
   eQTL_leadSNP_DF = leadSNP_DF %>% dplyr::select(rsid = SNP, chromosome = all_of(qtl_all_chrom), position = all_of(trait_BPcol), p_value = all_of(qtl_all_pvalue))
   eQTL_plot_title = paste(lead_SNP, geneSymbol, tissue)
   RA_plot <- gg_regional_association_plink(eQTL_leadSNP_DF, p_value_threshold = clump_P1, lead_snps = lead_SNP, bfile = plink_bfile, plink_bin = "plink", plot_distance = bps_in_region, plot_title = paste(eQTL_plot_title, "Regional Association Plot"), plot_subtitle = expression("GTEx v8"), region_recomb = region_recomb)
