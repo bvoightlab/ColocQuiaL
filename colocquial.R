@@ -597,7 +597,7 @@ eGenes = tryCatch({
 })
 
 #NK - call from before "adding rs ..."
-get_gene_tissue_region <- function(){
+get_gene_tissue_region <- function(qtl_type) {
   if(qtl_type == "eqtl"){
     return (eGeneTissue_region %>% dplyr::select(all_of(eQTL_all_chrom), all_of(eQTL_all_chromEnd), all_of(eQTL_all_geneID), all_of(eQTL_all_pvalue)))
   } else if(qtl_type == "sqtl"){
@@ -780,7 +780,7 @@ for(i in 1:nrow(eGenes)){
           }    
     }
 
-    eGeneTissue_region <- get_gene_tissue_region()
+    eGeneTissue_region <- get_gene_tissue_region(qtl_type)
     
     print("adding rs numbers to the QTL data")
     #add rs genegene,,numbers to the eGeneTissue_region DF
