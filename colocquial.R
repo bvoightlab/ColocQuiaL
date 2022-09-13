@@ -155,6 +155,7 @@ gg_regional_association_plink <- function(df, lead_snps = NULL, rsid = rsid, chr
   return(plot)
 }
 
+
 #generate the gene tracks for the RA plots
 ggbio_genetrack <- function(chrom_str, BPStart, BPStop) {
 
@@ -170,6 +171,7 @@ ranges = IRanges(BPStart:BPStop))
     return(plot)
 
 }
+
 
 #Print all of the config file settings to screen or the stnd out file
 print_config_settings <-function() {
@@ -201,7 +203,7 @@ print_config_settings <-function() {
   print(qtlType)
 }
 
-#NK
+
 prep_coloc_input_file <- function() {
     sprintf("merging the trait and %s on unique ID",qtlType) 
     colocInputFile = merge(eGeneTissue_region, trait_region, by.x="SNP", by.y=trait_SNPcol_str) # nolint
@@ -217,7 +219,7 @@ prep_coloc_input_file <- function() {
   return(colocInputFile)
 }
 
-#NK
+
 get_coloc_results <- function(colocInputFile, qtl_all_pvalue) {
 if (traitType == "cc") {
     return(coloc.abf(dataset1=list(pvalues=colocInputFile[[trait_Pcol]], N=colocInputFile[[trait_Ncol]], type=traitType, s=traitProp), dataset2=list(pvalues=colocInputFile[[qtl_all_pvalue]], N=qtl_N, type="quant"),MAF=colocInputFile[[trait_MAFcol_str]]))
@@ -226,12 +228,13 @@ if (traitType == "cc") {
   }
 }
 
-#NK
+
 write_coloc_input_file <- function(colocInputFile) {
 #write colocInputFile to file for making locus zoom plots
   colocInputFile_outputStr = paste(out_prefix,"coloc_input_data.txt",sep="_")
   write.table(colocInputFile, file= colocInputFile_outputStr, sep="\t", row.names=FALSE, quote=FALSE)
 }
+
 
 write_table_to_file <- function(coloc_results) {
   #prepare useful outputs
@@ -253,7 +256,7 @@ write_table_to_file <- function(coloc_results) {
   write.table(pp4_conditional, file=coloc_results_pp4_cond_outputStr, sep="\t", row.names=FALSE, quote=FALSE)
 }
 
-#NK
+
 find_lead_snp_in_ld <- function(colocInputFile, qtl_all_chrom, qtl_all_pvalue) {
     
     print("lead SNP is not in the provided LD reference, so we need to find a different SNP for making the RA plots")
@@ -271,7 +274,7 @@ find_lead_snp_in_ld <- function(colocInputFile, qtl_all_chrom, qtl_all_pvalue) {
     return (lead_SNP)
 }
 
-#NK
+
 create_lead_snp_df <- function(colocInputFile, qtl_all_chrom, qtl_all_pvalue) {
   leadSNP_DF = colocInputFile#[colocInputFile$SNP == lead_SNP,]
   leadSNP_DF[[eQTL_all_chrom]] = as.integer(gsub('[a-zA-Z]', '', leadSNP_DF[[eQTL_all_chrom]])) 
@@ -280,7 +283,7 @@ create_lead_snp_df <- function(colocInputFile, qtl_all_chrom, qtl_all_pvalue) {
   return (leadSNP_DF)
 }
 
-#NK
+
 plot_trait_data_first_iteration <- function(colocInputFile, qtl_all_chrom, leadSNP_DF) {
 
   #plot trait data if it is the first time going through the loop	
@@ -298,7 +301,7 @@ plot_trait_data_first_iteration <- function(colocInputFile, qtl_all_chrom, leadS
     return (RA_plot)
 }
 
-#NK
+
 gene_track_plot <- function(qtl_all_chrom, qtl_all_pvalue) {
 
   eQTL_leadSNP_DF = leadSNP_DF %>% dplyr::select(rsid = SNP, chromosome = all_of(qtl_all_chrom), position = all_of(trait_BPcol), p_value = all_of(qtl_all_pvalue))
@@ -313,30 +316,110 @@ gene_track_plot <- function(qtl_all_chrom, qtl_all_pvalue) {
   return (RA_plot)
 }
 
-#NK
+
+handle_tissue_table <- function(tissueTable) {
+  for (i in 1:nrow(tissueTable)) {
+    sigpair_filename = tissueTable$sigPairsTabixFilename[i]
+    if (is.na(sigpair_filename)) {
+      print(paste(tissueTable$Tissue[i], "is not available in the significant pairs files"))
+      next
+    }
+    
+    file = paste0(sig_qtl_tabix_dir, "/", sigpair_filename) 
+    
+    system(paste("tabix", file, lead_SNP_pos_tabix_with_chr, ">", paste0(lead_SNP, "_temp.csv"))) 
+    system(paste("tabix", file, lead_SNP_pos_tabix_without_chr, ">>", paste0(lead_SNP, "_temp.csv"))) 
+    
+    system(paste0("sed -i \"s/$/\t", tissueTable$Tissue[i], "/\" ", lead_SNP, "_temp.csv"))
+    system(paste0("cat ", lead_SNP, "_temp.csv >> ", lead_SNP, ".csv"))
+  }
+}
+
+
+get_gene_tissue_region <- function() {
+  if(qtlType == "eqtl"){
+    return (eGeneTissue_region %>% dplyr::select(all_of(eQTL_all_chrom), all_of(eQTL_all_chromEnd), all_of(eQTL_all_geneID), all_of(eQTL_all_pvalue)))
+  } else if(qtlType == "sqtl"){
+    return (eGeneTissue_region %>% dplyr::select(all_of(sQTL_all_chrom), all_of(sQTL_all_chromEnd), all_of(sQTL_all_geneID), all_of(sQTL_all_pvalue), all_of(sQTL_all_intron_chr), all_of(sQTL_all_intron_bp_first), all_of(sQTL_all_intron_bp_end), all_of(sQTL_all_intron_clu)))
+  }
+}
+
+
+run_liftover <- function() {
+  repeat {
+    print("running liftOver")
+    bed_liftover = data.frame("chr" = c(paste0("chr", chrom), paste0("chr", chrom)), "bp1" = c(colocStart - 1, colocStop - 1), "bp2" = c(colocStart, colocStop)) 
+    write.table(bed_liftover,file=paste0("temp_hg19.bed"),sep="\t",quote = FALSE,row.names=FALSE,col.names=FALSE)
+    
+    #generate liftOver command
+    liftOver_command = paste( "liftOver temp_hg19.bed", liftOver_chain, "temp_hg38.bed temp_hg19.unmapped -bedPlus=3 -tab", sep=" ")
+    system(liftOver_command)
+    
+    hg38_positions = as.data.frame(read.table("temp_hg38.bed", header=FALSE, sep="\t")) 
+    
+    if (!is.na(hg38_positions[2,3])) {
+      break
+    } else {
+      unmapped = fread(file="temp_hg19.unmapped", sep='\t', header=FALSE)
+      if (unmapped[1,3] == colocStart) {
+        print(paste("Could not map to hg38:", colocStart))
+        colocStart = colocStart + 5000
+      } else if (unmapped[1,3] == colocStop) {
+        print(paste("Could not map to hg38:", colocStop))
+        colocStop = colocStop - 5000
+      }
+      print(paste("Trying new region:", colocStart, "-", colocStop)) 
+      
+      if (colocStart >= colocStop) {
+        print("Could not perform liftover")
+        quit(status=0)
+      }
+    }
+  }
+
+  return (hg38_positions)
+}
+
+
+format_tissue <- function(tissue) {
+  #parentheses are causing issues too
+  tissue_noSpace = gsub("\\(","",tissue)
+  tissue_noSpace = gsub("\\)","",tissue_noSpace)
+  # The tissue names have any whitespace in them and we want to use these in the output file names so replace " " with "_"
+  return(gsub("[[:space:]]","_",tissue_noSpace))
+}
+
+
+validate_build <-function(build, hg38_positions) {
+  if (build == "hg38") {
+    system(paste0("tabix ", tabix_allpair_path, " ", chrom, ":", colocStart, "-", colocStop, " >> ", eGeneTissueInputFile))
+    system(paste0("tabix ", tabix_allpair_path, " chr", chrom, ":", colocStart, "-", colocStop, " >> ", eGeneTissueInputFile))
+  } else if (build == "hg19") {
+    system(paste0("tabix ", tabix_allpair_path, " ", chrom, ":", hg38_positions[1,3], "-", hg38_positions[2,3], " >> ", eGeneTissueInputFile))    
+    system(paste0("tabix ", tabix_allpair_path, " chr", chrom, ":", hg38_positions[1,3], "-", hg38_positions[2,3], " >> ", eGeneTissueInputFile))    
+  } else {
+    print("ERROR: Please specify build: \"hg19\" or \"hg38\"")
+    quit()
+  }
+}
+
+
 eqtl_colocalization <- function() {
-  #NK
   colocInputFile = prep_coloc_input_file()
   write_coloc_input_file(colocInputFile)
   
-  #NK - common to both
   print("Running coloc")
+
   #run coloc
   coloc_results = get_coloc_results(colocInputFile, eQTL_all_pvalue)
-  
   write_table_to_file(coloc_results)
   
   #generate regional association plot
-  
   #find lead SNP in LD reference if needed
   if (SNPinLDref == TRUE) {
-
     print(lead_SNP)
-
   } else {
-    
     print("lead SNP is not in the provided LD reference, so we need to find a different SNP for making the RA plots")
-    
     lead_SNP <- find_lead_snp_in_ld(colocInputFile, eQTL_all_chrom, eQTL_all_pvalue)
   }  
   
@@ -364,21 +447,16 @@ eqtl_colocalization <- function() {
   dev.off()
 }
 
-#NK
-sqtl_colocalization <- function() {
 
-  #NK
+sqtl_colocalization <- function() {
   colocInputMasterFile = prep_coloc_input_file(qtlType)       
   
-  #UNIQUE TO SQTL
-  {
   #combine intron columns
   colocInputMasterFile$intronID = paste(colocInputMasterFile[[sQTL_all_intron_chr]], colocInputMasterFile[[sQTL_all_intron_bp_first]], colocInputMasterFile[[sQTL_all_intron_bp_end]], colocInputMasterFile[[sQTL_all_intron_clu]], colocInputMasterFile[[sQTL_all_geneID]], sep=":")
   
   print("finding unique introns")
   #find all unique introns
   uniqueIntrons = unique(colocInputMasterFile$intronID)
-  }
   
   #loop through unique introns
   for(j in 1:length(uniqueIntrons)) {
@@ -394,25 +472,18 @@ sqtl_colocalization <- function() {
     
     write_coloc_input_file(colocInputFile)
 
-    
-    #NK - common to both
     print("Running coloc")
+
     #run coloc
     coloc_results = get_coloc_results(colocInputFile, eQTL_all_pvalue)
-
     write_table_to_file(coloc_results)
     
     #generate regional association plot
-    
     #find lead SNP in LD reference if needed
     if (SNPinLDref == TRUE) {
-
       print(lead_SNP)
-
     } else {
-    
       print("lead SNP is not in the provided LD reference, so we need to find a different SNP for making the RA plots")
-    
       lead_SNP <- find_lead_snp_in_ld(colocInputFile, sQTL_all_chrom, sQTL_all_pvalue)
     }
     
@@ -438,30 +509,11 @@ sqtl_colocalization <- function() {
     pdf(file = paste0(lead_SNP, "_", geneSymbol, "_", intronID, "_", tissue,".pdf"), paper = 'USr', width = 15, height = 20)
     print(RA_plot)
     dev.off()
-    #NK - end common to both
   }
 }
 
-#tissue table function - NK
-handle_tissue_table <- function(tissueTable){
-  for (i in 1:nrow(tissueTable)) {
-    sigpair_filename = tissueTable$sigPairsTabixFilename[i]
-    if (is.na(sigpair_filename)) {
-      print(paste(tissueTable$Tissue[i], "is not available in the significant pairs files"))
-      next
-    }
-    
-    file = paste0(sig_qtl_tabix_dir, "/", sigpair_filename) 
-    
-    system(paste("tabix", file, lead_SNP_pos_tabix_with_chr, ">", paste0(lead_SNP, "_temp.csv"))) 
-    system(paste("tabix", file, lead_SNP_pos_tabix_without_chr, ">>", paste0(lead_SNP, "_temp.csv"))) 
-    
-    system(paste0("sed -i \"s/$/\t", tissueTable$Tissue[i], "/\" ", lead_SNP, "_temp.csv"))
-    system(paste0("cat ", lead_SNP, "_temp.csv >> ", lead_SNP, ".csv"))
-  }
-}
 
-#MAIN WORKFLOW STARTS HERE
+################################ Main Workflow starts here ################################ 
 #Read in the arguments from the config file
 source("QTL_config.R")
 source(setup_config_R)
@@ -493,7 +545,7 @@ qtl_vars <- list(
 print_config_settings()
 
 # Set up QTL variables for either eQTL or sQTL
-if (qtlType == "eqtl" | qtlType == "sqtl") {
+if (qtlType == "eqtl" || qtlType == "sqtl") {
     sig_qtl_tabix_dir = qtl_vars[[qtlType]][["sig_qtl_tabix_dir"]]
     sig_geneID_col = qtl_vars[[qtlType]][["sig_geneID_col"]]
     all_qtl_tabix_dir = qtl_vars[[qtlType]][["all_qtl_tabix_dir"]]
@@ -528,7 +580,6 @@ system(SNP_grep_str)
 
 fileInfo <- file.info("leadSNP_test_file.txt")
 SNPinLDref = (fileInfo$size != 0)
-
 
 #read in the tissue specific eQLT summary file with the file names added
 trait_region = fread(file=traitFilePath, sep="\t", header=TRUE)
@@ -604,74 +655,6 @@ eGenes = tryCatch({
     quit(status=0)
 })
 
-#NK - call from before "adding rs ..."
-get_gene_tissue_region <- function() {
-  if(qtlType == "eqtl"){
-    return (eGeneTissue_region %>% dplyr::select(all_of(eQTL_all_chrom), all_of(eQTL_all_chromEnd), all_of(eQTL_all_geneID), all_of(eQTL_all_pvalue)))
-  } else if(qtlType == "sqtl"){
-    return (eGeneTissue_region %>% dplyr::select(all_of(sQTL_all_chrom), all_of(sQTL_all_chromEnd), all_of(sQTL_all_geneID), all_of(sQTL_all_pvalue), all_of(sQTL_all_intron_chr), all_of(sQTL_all_intron_bp_first), all_of(sQTL_all_intron_bp_end), all_of(sQTL_all_intron_clu)))
-  }
-}
-
-#NK
-run_liftover <- function(){
-  repeat {
-    print("running liftOver")
-    bed_liftover = data.frame("chr" = c(paste0("chr", chrom), paste0("chr", chrom)), "bp1" = c(colocStart - 1, colocStop - 1), "bp2" = c(colocStart, colocStop)) 
-    write.table(bed_liftover,file=paste0("temp_hg19.bed"),sep="\t",quote = FALSE,row.names=FALSE,col.names=FALSE)
-    
-    #generate liftOver command
-    liftOver_command = paste( "liftOver temp_hg19.bed", liftOver_chain, "temp_hg38.bed temp_hg19.unmapped -bedPlus=3 -tab", sep=" ")
-    system(liftOver_command)
-    
-    hg38_positions = as.data.frame(read.table("temp_hg38.bed", header=FALSE, sep="\t")) 
-    
-    if (!is.na(hg38_positions[2,3])) {
-      break
-    } else {
-      unmapped = fread(file="temp_hg19.unmapped", sep='\t', header=FALSE)
-      if (unmapped[1,3] == colocStart) {
-        print(paste("Could not map to hg38:", colocStart))
-        colocStart = colocStart + 5000
-      } else if (unmapped[1,3] == colocStop) {
-        print(paste("Could not map to hg38:", colocStop))
-        colocStop = colocStop - 5000
-      }
-      print(paste("Trying new region:", colocStart, "-", colocStop)) 
-      
-      if (colocStart >= colocStop) {
-        print("Could not perform liftover")
-        quit(status=0)
-      }
-    }
-  }
-
-  return (hg38_positions)
-}
-
-#NK
-format_tissue <- function(tissue){
-  #parentheses are causing issues too
-  tissue_noSpace = gsub("\\(","",tissue)
-  tissue_noSpace = gsub("\\)","",tissue_noSpace)
-  # The tissue names have any whitespace in them and we want to use these in the output file names so replace " " with "_"
-  return(gsub("[[:space:]]","_",tissue_noSpace))
-}
-
-#NK
-validate_build <-function(build, hg38_positions){
-  if (build == "hg38") {
-    system(paste0("tabix ", tabix_allpair_path, " ", chrom, ":", colocStart, "-", colocStop, " >> ", eGeneTissueInputFile))
-    system(paste0("tabix ", tabix_allpair_path, " chr", chrom, ":", colocStart, "-", colocStop, " >> ", eGeneTissueInputFile))
-  } else if (build == "hg19") {
-    system(paste0("tabix ", tabix_allpair_path, " ", chrom, ":", hg38_positions[1,3], "-", hg38_positions[2,3], " >> ", eGeneTissueInputFile))    
-    system(paste0("tabix ", tabix_allpair_path, " chr", chrom, ":", hg38_positions[1,3], "-", hg38_positions[2,3], " >> ", eGeneTissueInputFile))    
-  } else {
-    print("ERROR: Please specify build: \"hg19\" or \"hg38\"")
-    quit()
-  }
-}
-
 #loop through the eGene-Tissue pairs in eGenes and prep running COLOC
 for(i in 1:nrow(eGenes)){
     geneID <- eGenes[i, sig_geneID_col]
@@ -691,7 +674,6 @@ for(i in 1:nrow(eGenes)){
 
     })
 
-    
     print(geneID)
     print(geneSymbol)
 
@@ -734,7 +716,6 @@ for(i in 1:nrow(eGenes)){
     #Use tabix to grab data, try both with and without "chr"
     eGeneTissueInputFile = paste(geneSymbol,tissue_noSpace,chrom,colocStart,colocStop,".txt", sep="_")
     validate_build(build, hg38_positions)
-    
     
     print("reading the all pairs data into R")
     #read the file we just generated from the grep command into R
