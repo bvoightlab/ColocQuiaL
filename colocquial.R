@@ -637,6 +637,8 @@ run_liftover <- function(){
       }
     }
   }
+
+  return (hg38_positions)
 }
 
 #NK
@@ -649,7 +651,7 @@ format_tissue <- function(tissue){
 }
 
 #NK
-validate_build <-function(build){
+validate_build <-function(build, hg38_positions){
   if (build == "hg38") {
     system(paste0("tabix ", tabix_allpair_path, " ", chrom, ":", colocStart, "-", colocStop, " >> ", eGeneTissueInputFile))
     system(paste0("tabix ", tabix_allpair_path, " chr", chrom, ":", colocStart, "-", colocStop, " >> ", eGeneTissueInputFile))
@@ -717,13 +719,13 @@ for(i in 1:nrow(eGenes)){
 
     #run liftover on colocStart and colocStop if in HG19
     if (build == "hg19") {	
-        run_liftover()
+        hg38_positions <- run_liftover()
     }
 
     print("Grabbing the all pairs data")    
     #Use tabix to grab data, try both with and without "chr"
     eGeneTissueInputFile = paste(geneSymbol,tissue_noSpace,chrom,colocStart,colocStop,".txt", sep="_")
-    validate_build(build)
+    validate_build(build, hg38_positions = )
     
     
     print("reading the all pairs data into R")
