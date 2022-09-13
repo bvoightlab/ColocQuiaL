@@ -725,7 +725,7 @@ for(i in 1:nrow(eGenes)){
     print("Grabbing the all pairs data")    
     #Use tabix to grab data, try both with and without "chr"
     eGeneTissueInputFile = paste(geneSymbol,tissue_noSpace,chrom,colocStart,colocStop,".txt", sep="_")
-    validate_build(build, hg38_positions = )
+    validate_build(build, hg38_positions)
     
     
     print("reading the all pairs data into R")
