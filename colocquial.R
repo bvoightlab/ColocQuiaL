@@ -221,9 +221,9 @@ prep_coloc_input_file <- function() {
 
 get_coloc_results <- function(colocInputFile, qtl_all_pvalue) {
 if (traitType == "cc") {
-    return(coloc.abf(dataset1=list(pvalues=colocInputFile[[trait_Pcol]], N=colocInputFile[[trait_Ncol]], type=traitType, s=traitProp), dataset2=list(pvalues=colocInputFile[[qtl_all_pvalue]], N=qtl_N, type="quant"),MAF=colocInputFile[[trait_MAFcol_str]]))
+    return(coloc.abf(dataset1=list(snp=colocInputFile$SNP, pvalues=colocInputFile[[trait_Pcol]], N=colocInputFile[[trait_Ncol]], type=traitType, s=traitProp), dataset2=list(snp=colocInputFile$SNP, pvalues=colocInputFile[[qtl_all_pvalue]], N=qtl_N, type="quant"),MAF=colocInputFile[[trait_MAFcol_str]]))
   } else {
-    return(coloc.abf(dataset1=list(pvalues=colocInputFile[[trait_Pcol]], N=colocInputFile[[trait_Ncol]], type=traitType), dataset2=list(pvalues=colocInputFile[[qtl_all_pvalue]], N=qtl_N, type="quant"),MAF=colocInputFile[[trait_MAFcol_str]]))
+    return(coloc.abf(dataset1=list(snp=colocInputFile$SNP, pvalues=colocInputFile[[trait_Pcol]], N=colocInputFile[[trait_Ncol]], type=traitType), dataset2=list(snp=colocInputFile$SNP, pvalues=colocInputFile[[qtl_all_pvalue]], N=qtl_N, type="quant"),MAF=colocInputFile[[trait_MAFcol_str]]))
   }
 }
 
@@ -323,14 +323,25 @@ handle_tissue_table <- function(tissueTable) {
     
     file = paste0(sig_qtl_tabix_dir, "/", sigpair_filename) 
     
-    system(paste("tabix", file, lead_SNP_pos_tabix_with_chr, ">", paste0(lead_SNP, "_temp.csv"))) 
-    system(paste("tabix", file, lead_SNP_pos_tabix_without_chr, ">>", paste0(lead_SNP, "_temp.csv"))) 
-    
-    system(paste0("sed -i \"s/$/\t", tissueTable$Tissue[i], "/\" ", lead_SNP, "_temp.csv"))
-    system(paste0("cat ", lead_SNP, "_temp.csv >> ", lead_SNP, ".csv"))
+    #check if any trait sig SNPs are sig eQTL
+    for (n in 1:nrow(trait_sig)) {
+      #convert format for tabix
+      chr = trait_sig[[n, trait_CHRcol]]
+      pos = trait_sig[[n, trait_BPcol]]
+      SNP_pos = paste0("chr", chr, "_", pos)
+      SNP_pos_tabix_with_chr = paste0(gsub("_",":",SNP_pos), "-", gsub("^.*?_","",SNP_pos))
+      SNP_pos_tabix_without_chr = paste0(gsub("chr", "", gsub("_",":",SNP_pos)), "-", gsub("^.*?_","",SNP_pos))
+      
+      
+      system(paste("tabix", file, SNP_pos_tabix_with_chr, ">", paste0(lead_SNP, "_temp.csv"))) 
+      system(paste("tabix", file, SNP_pos_tabix_without_chr, ">>", paste0(lead_SNP, "_temp.csv"))) 
+      
+      system(paste0("sed -i \"s/$/\t", tissueTable$Tissue[i], "/\" ", lead_SNP, "_temp.csv"))
+      system(paste0("cat ", lead_SNP, "_temp.csv >> ", lead_SNP, ".csv"))
+      
+    }
   }
 }
-
 
 get_gene_tissue_region <- function() {
   if(qtlType == "eqtl"){
@@ -578,7 +589,7 @@ fileInfo <- file.info("leadSNP_test_file.txt")
 SNPinLDref = (fileInfo$size != 0)
 
 #read in the tissue specific eQLT summary file with the file names added
-trait_region = fread(file=traitFilePath, sep="\t", header=TRUE)
+trait_all = fread(file=traitFilePath, sep="\t", header=TRUE)
 print("trait input file successfully loaded")
 
 #add "trait" to the Allele fields, the MAF field, and the SNP field to avoid confusion when we compare to the eQTL alleles later 
@@ -587,18 +598,19 @@ trait_A2col_str = paste(trait_A2col,"_trait",sep="")
 trait_SNPcol_str = paste(trait_SNPcol,"_trait",sep="")
 trait_MAFcol_str = paste(trait_MAFcol,"_trait",sep="")
 
-colnames(trait_region)[colnames(trait_region)== trait_A1col] <- trait_A1col_str
-colnames(trait_region)[colnames(trait_region)== trait_A2col] <- trait_A2col_str
-colnames(trait_region)[colnames(trait_region)== trait_SNPcol] <- trait_SNPcol_str
-colnames(trait_region)[colnames(trait_region)== trait_MAFcol] <- trait_MAFcol_str
+colnames(trait_all)[colnames(trait_all)== trait_A1col] <- trait_A1col_str
+colnames(trait_all)[colnames(trait_all)== trait_A2col] <- trait_A2col_str
+colnames(trait_all)[colnames(trait_all)== trait_SNPcol] <- trait_SNPcol_str
+colnames(trait_all)[colnames(trait_all)== trait_MAFcol] <- trait_MAFcol_str
 
 #remove any alphabetical characters from the chromosome column
-trait_region[[trait_CHRcol]] <- as.integer(gsub('[a-zA-Z]', '', trait_region[[trait_CHRcol]]))
+trait_all[[trait_CHRcol]] <- as.integer(gsub('[a-zA-Z]', '', trait_all[[trait_CHRcol]]))
 
-str(trait_region)
+str(trait_all)
 
 #grab the snps that are within the start stop and on the correct chromosome from the trait file
-trait_region = trait_region[trait_region[[trait_CHRcol]] == chrom & trait_region[[trait_BPcol]] >= colocStart & trait_region[[trait_BPcol]] <= colocStop,]
+test <- chrom
+trait_region = trait_all[(trait_all[[trait_CHRcol]] == test) & (trait_all[[trait_BPcol]] >= colocStart) & (trait_all[[trait_BPcol]] <= colocStop),]
 
 head(trait_region,3)
 
@@ -635,12 +647,11 @@ tissueTable_tissue_noSpace = gsub("[[:space:]]","_",tissueTable_tissue_noSpace)
 tissueTable_tissue_noSpace = gsub("-_", "", tissueTable_tissue_noSpace)
 tissueTable$Tissue = tissueTable_tissue_noSpace
 
-#create csv file from significant pair files
-lead_SNP_pos = hash_table[[lead_SNP]]
-#convert format for tabix
-lead_SNP_pos_tabix_with_chr = paste0(gsub("_",":",lead_SNP_pos), "-", gsub("^.*?_","",lead_SNP_pos))
-lead_SNP_pos_tabix_without_chr = paste0(gsub("chr", "", gsub("_",":",lead_SNP_pos)), "-", gsub("^.*?_","",lead_SNP_pos))
 
+#get all significant SNPs in trait file
+trait_sig = trait_region[trait_region[[trait_Pcol]] <= 5E-8]
+
+#create csv file from significant pair files
 handle_tissue_table(tissueTable)
 
 #read in the csv file of eGene-Tissue pairs 
@@ -650,6 +661,9 @@ eGenes = tryCatch({
     print(paste(lead_SNP, "is not a significant", qtlType, "in any tissue in the", qtlType, "dataset."))
     quit(status=0)
 })
+
+#reduce each egene/tissue combo to lowest pval SNP
+eGenes <- eGenes %>% group_by(V4, V6) %>% dplyr::slice(which.min(V5))
 
 #loop through the eGene-Tissue pairs in eGenes and prep running COLOC
 for(i in 1:nrow(eGenes)){
@@ -782,6 +796,7 @@ for(i in 1:nrow(eGenes)){
     colnames(uniqID_DF) <- c("chromosome_position", "SNP")
 
     eGeneTissue_region = merge(eGeneTissue_region, uniqID_DF, by = "chromosome_position")  
+    eGeneTissue_region <- eGeneTissue_region %>% distinct(SNP, .keep_all=TRUE)
 
     ################################ eQTL colocalization and RA Plots ################################ 
     if (qtlType == "eqtl") {
